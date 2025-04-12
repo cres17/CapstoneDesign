@@ -1,16 +1,25 @@
-# capstone_porj
+<소개팅 어플>
+어플이름: 다온
+핵심기능: 
+1.영상통화를 하면서 서로의 얼굴을 가리고 진행. 
+2. 대화를 하면서 stt를 통해 나눈스크립트를 openai api를 통해 gpt모델에게 대화분석 요청.
+3. 대화를 분석한 뒤에 이 소개팅이 성사될 것인지 예측. (예측 모델은 우리가 직접 "나는솔로"티비 프로그램의 내용을 학습.)
 
-A new Flutter project.
+페이지 구성:시작페이지, 회원가입페이지, 로그인페이지, 메인페이지, 영상통화 페이지, 대화분석페이지, 예측페이지, 데이트장소 추천페이지, 채팅방페이지, 설정페이지.
 
-## Getting Started
+페이지마다 폴더를 구성.
 
-This project is a starting point for a Flutter application.
+1. 시작페이지: 회원가입, 로그인버튼.
+2. 회원가입 페이지: 아이디, 비밀번호, 성별, 주소, 닉네임, 프로필사진 업로드. 이렇게 6가지를 기입.
+3. 로그인 페이지: 아이디와 비밀번호를 적는 칸, 로그인 버튼. 지금은 로그인 구현을 못했으니, 로그인버튼을 누르면 바로 메인페이지로 넘어가도록 함.
+4. 메인페이지: 아랫쪽에 네비게이션바들이 보이고, 네비게이션바는 메인페이지, 데이트장소 추천페이지, 채팅방 페이지, 설정페이지 이렇게 네가지가 있음. 중앙에는 "상대방과 연결하기" 버튼이 있는데, 이 버튼을 누르면 영상통화 페이지로 넘어가서 상대방과 영상통화 연결.
+​통화종료버튼을 누르면 알림창이 뜨면서 "대화분석페이지와 예측페이지에 분석된 내용이 있습니다"라는 문구가 나옴. 메인페이지 상단 네이게이션 바에 대화분석페이지와 예측페이지를 추가. 네브바 아이콘을 누르면 각 페이지로 이동.
+5. 영상통화 페이지: 영상통화 페이지는 영상통화를 하는 페이지. 영상통화를 하면서 서로의 얼굴을 가리고 진행.
+6. 대화분석페이지: 카드 형식으로 위에부터 최근 통화했던부분에 대한 분석 결과 날짜와 대화상대가 보이도록 나와있음. 카드를 클릭하면 더 크게 모달창이 나오면서 분석 결과가 나옴.
+7. 예측페이지: 카드형식으로 날짜와 대화상대방이 표시되어있는데, 카드를 클릭하면 예측결과가 나타나게 함.
+8. 데이트장소 추천 페이지는 검색창에 상대방의 닉네임을 입력하면 상대방과 내 위치를 고려해서 추천 데이트장소가 카드형식으로 나옴.(아직 구현x)
+설정 페이지는 주소 수정, 로그아웃버튼, 회원탈퇴버튼을 넣어주도록 하고 맨 아래 "made by daon".
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+주의할 점: 패키지나 라이브러리를 추가할 때 pubspec.yalm에 추가하지 말고 터미널에서 사용자가 직접 설치-> 터미널 설치 명령어로 응답.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.

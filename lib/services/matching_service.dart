@@ -15,7 +15,7 @@ class MatchingService {
       try {
         return html.window.location.origin;
       } catch (e) {
-        return 'http://172.16.100.225:5000'; // 웹 환경의 기본값
+        return 'http://172.30.1.76:5000'; // 웹 환경의 기본값
       }
     }
 
@@ -23,7 +23,7 @@ class MatchingService {
     const bool isProduction = bool.fromEnvironment('dart.vm.product');
     return isProduction
         ? 'http://your-production-server.com:5000' // 프로덕션 서버
-        : 'http://172.16.100.225:5000'; // 개발 서버
+        : 'http://172.30.1.76:5000'; // 개발 서버
   }
 
   // 매칭 요청에 재시도 로직 추가

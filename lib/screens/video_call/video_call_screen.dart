@@ -118,7 +118,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
 
       // Socket.IO 서버에 연결 (서버 주소를 실제 주소로 변경)
-      await _signalingService.connect('http://172.16.100.225:5000');
+      await _signalingService.connect('http://172.30.1.14:5000');
 
       // 로컬 스트림 생성
       await _signalingService.createLocalStream();
@@ -172,7 +172,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     try {
       final socketId = _signalingService.socket!.id;
       final response = await http
-          .get(Uri.parse('http://172.16.100.225:5000/match?userId=$socketId'))
+          .get(Uri.parse('http://172.30.1.14:5000/match?userId=$socketId'))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
