@@ -15,7 +15,7 @@ class MatchingService {
       try {
         return html.window.location.origin;
       } catch (e) {
-        return 'http://195.109.1.137:5000'; // 웹 환경의 기본값
+        return 'http://172.30.1.15:5000'; // 웹 환경의 기본값
       }
     }
 
@@ -23,11 +23,11 @@ class MatchingService {
     const bool isProduction = bool.fromEnvironment('dart.vm.product');
     return isProduction
         ? 'http://your-production-server.com:5000' // 프로덕션 서버
-        : 'http://195.109.1.137:5000'; // 개발 서버
+        : 'http://172.30.1.15:5000'; // 개발 서버
   }
 
   // 매칭 요청에 재시도 로직 추가
-  static Future<Map<String, dynamic>> requestMatching(
+  static Future<Map<String, dynamic>?> requestMatching(
     String userId, {
     int maxRetries = 3,
   }) async {
@@ -40,19 +40,24 @@ class MatchingService {
             .timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
-          return jsonDecode(response.body);
+          // 매칭 성공
+          return jsonDecode(response.body); // 매칭 결과 반환
         } else if (response.statusCode == 404) {
-          // 매칭 가능한 사용자가 없을 때 잠시 대기 후 재시도
+          // 매칭 가능한 사용자가 없을 때
+          // 내부에서 일정 횟수만큼 자동 재시도
+          print('매칭 실패(404) - 재시도중... 시도 횟수: ${attempts + 1}/$maxRetries');
           await Future.delayed(const Duration(seconds: 3));
           attempts++;
           continue;
         } else {
+          // 그 외 상태코드는 즉시 예외 처리
           throw Exception('매칭 요청 실패: ${response.statusCode}');
         }
       } catch (e) {
         print('매칭 오류 (시도 ${attempts + 1}/$maxRetries): $e');
 
         if (attempts >= maxRetries - 1) {
+          // 최대 재시도 횟수 도달 시 rethrow
           rethrow;
         }
 
@@ -61,6 +66,7 @@ class MatchingService {
       }
     }
 
+    // 모든 재시도 실패 시 예외 발생
     throw Exception('최대 재시도 횟수 초과');
   }
 
