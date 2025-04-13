@@ -95,11 +95,27 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       _showCallEndDialog();
     };
 
-    _signalingService.onIncomingCall = (callerId) {
+    _signalingService.onIncomingCall = (callerId) async {
       setState(() {
         _remoteUserId = callerId;
       });
-      _showIncomingCallDialog(callerId);
+
+      // 수신 알림 다이얼로그를 띄우는 대신, 자동으로 통화 수락
+      try {
+        print('수신 통화 자동 수락 시도: $callerId');
+        await _signalingService.acceptCall(callerId);
+        setState(() {
+          _isInCall = true;
+          _isConnecting = false;
+        });
+      } catch (e) {
+        print('수신 통화 자동 수락 중 오류: $e');
+        setState(() {
+          _isConnecting = false;
+          _hasError = true;
+          _errorMessage = '수신 통화 자동 수락 오류: $e';
+        });
+      }
     };
   }
 
@@ -117,34 +133,30 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         return;
       }
 
-      // Socket.IO 서버에 연결 (서버 주소를 실제 주소로 변경)
-      await _signalingService.connect('http://195.109.1.137:5000');
+      // Socket.IO 서버에 연결
+      await _signalingService.connect('http://172.30.1.15:5000');
 
       // 로컬 스트림 생성
       await _signalingService.createLocalStream();
 
       setState(() {
-        _isConnecting = true;
+        _isConnecting = true; // 로딩 화면 표시
       });
 
-      // 연결 시작
-      // 실제 구현에서는 여기서 매칭 서버에 요청을 보내 매칭된 사용자 ID를 받아와야 함
-      // 지금은 단순화를 위해 바로 연결 시작
-      final response = await _requestMatching();
+      // 매칭 시도 - 성공할 때까지 대기
+      final response = await _requestMatchingUntilFound();
       if (response != null && response['matchedUserId'] != null) {
-        String targetId = response['matchedUserId'];
+        final targetId = response['matchedUserId'];
         print('매칭된 사용자: $targetId');
 
         setState(() {
           _remoteUserId = targetId;
         });
-
         await _signalingService.startCall(targetId);
-      } else {
+
+        // 연결 후 로딩 해제
         setState(() {
           _isConnecting = false;
-          _hasError = true;
-          _errorMessage = '매칭 가능한 사용자가 없습니다.';
         });
       }
     } catch (e) {
@@ -157,44 +169,41 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     }
   }
 
-  // 사용자 매칭 요청 (실제 매칭 서버와 통신)
-  Future<Map<String, dynamic>?> _requestMatching() async {
-    // 소켓 ID가 없으면 반환
-    if (_signalingService.socket?.id == null) {
-      setState(() {
-        _hasError = true;
-        _errorMessage = '서버에 연결되지 않았습니다.';
-      });
-      return null;
-    }
+  // 매칭 서버에 무한 재시도하는 로직
+  Future<Map<String, dynamic>?> _requestMatchingUntilFound() async {
+    while (true) {
+      try {
+        // 1) 매칭 시도
+        final socketId = _signalingService.socket?.id;
+        if (socketId == null) {
+          throw Exception('소켓이 연결되지 않았습니다.');
+        }
 
-    // 실제 매칭 서비스 호출
-    try {
-      final socketId = _signalingService.socket!.id;
-      final response = await http
-          .get(Uri.parse('http://195.109.1.137:5000/match?userId=$socketId'))
-          .timeout(const Duration(seconds: 10));
+        // 2) 실제 매칭 요청
+        final response = await http
+            .get(Uri.parse('http://172.30.1.15:5000/match?userId=$socketId'))
+            .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else if (response.statusCode == 404) {
-        // 매칭 가능한 사용자가 없음
-        setState(() {
-          _isConnecting = false;
-          _hasError = true;
-          _errorMessage = '매칭 가능한 사용자가 없습니다. 잠시 후 다시 시도하세요.';
-        });
-        return null;
-      } else {
-        throw Exception('매칭 요청 실패: ${response.statusCode}');
+        // 3) 매칭 성공
+        if (response.statusCode == 200) {
+          return jsonDecode(response.body);
+        }
+        // 4) 매칭 실패(404)일 경우 - 잠시 대기 후 재시도
+        else if (response.statusCode == 404) {
+          // 로그 출력은 필요하면 남겨두세요
+          print('매칭 중... 아직 사용자가 없습니다. 잠시 후 재시도합니다.');
+          await Future.delayed(const Duration(seconds: 3));
+          continue;
+        } else {
+          // 그 외 상태코드는 즉시 예외
+          throw Exception('매칭 요청 실패: ${response.statusCode}');
+        }
+      } catch (e) {
+        // 네트워크 오류 등
+        print('매칭 오류: $e');
+        // 잠시 대기 후 다시 시도
+        await Future.delayed(const Duration(seconds: 3));
       }
-    } catch (e) {
-      print('매칭 오류: $e');
-      setState(() {
-        _hasError = true;
-        _errorMessage = '매칭 중 오류가 발생했습니다: $e';
-      });
-      return null;
     }
   }
 
@@ -214,64 +223,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 child: const Text('확인'),
                 onPressed: () {
                   Navigator.pop(context); // 다이얼로그 닫기
-                  Navigator.pop(context); // 이전 화면으로 돌아가기
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/main', (route) => false);
                 },
               ),
             ],
           ),
-    );
-  }
-
-  // 수신 통화 다이얼로그
-  void _showIncomingCallDialog(String callerId) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('수신 통화'),
-          content: Text('$callerId님으로부터 통화 요청이 왔습니다.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                setState(() {
-                  _isConnecting = false;
-                  _remoteUserId = null;
-                });
-                _signalingService.rejectCall(callerId);
-              },
-              child: const Text('거절'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                setState(() {
-                  _isConnecting = true;
-                });
-
-                try {
-                  // 통화 수락 후 처리
-                  await _signalingService.acceptCall(callerId);
-                  setState(() {
-                    _isInCall = true;
-                    _isConnecting = false;
-                  });
-                  print('통화가 성공적으로 연결되었습니다');
-                } catch (e) {
-                  print('통화 연결 중 오류 발생: $e');
-                  setState(() {
-                    _isConnecting = false;
-                    _hasError = true;
-                    _errorMessage = '통화 연결 중 오류가 발생했습니다: $e';
-                  });
-                }
-              },
-              child: const Text('수락'),
-            ),
-          ],
-        );
-      },
     );
   }
 
