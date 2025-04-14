@@ -46,6 +46,8 @@ dependencies:
   socket_io_client: ^3.1.1
   permission_handler: ^12.0.0
   path_provider: ^2.1.5
+  google_mlkit_face_detection: ^0.13.1
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:
@@ -98,3 +100,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  assets:
+    - assets/images/ # 폴더 전체를 등록하거나
+    - assets/images/default_mask.png # 특정 파일만 등록

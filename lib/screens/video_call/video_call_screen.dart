@@ -1,3 +1,4 @@
+import 'package:capstone_porj/widgets/face_mask_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -7,6 +8,9 @@ import '../../services/permission_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import '../../services/webrtc_face_detection.dart';
+import 'dart:ui' as ui; // toImage() 사용을 위해 추가 (이미 있다면 생략)
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -21,6 +25,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   final _localRenderer = RTCVideoRenderer();
   final _remoteRenderer = RTCVideoRenderer();
 
+  // 추가: WebRTCFaceDetection
+  late final WebRTCFaceDetection _webrtcFaceDetection;
+
+  List<Face> _detectedFaces = [];
+
   bool _isMicMuted = false;
   bool _isConnecting = false;
   bool _isInCall = false;
@@ -30,6 +39,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   // 상태 확인 타이머 추가
   Timer? _connectionCheckTimer;
+
+  // RepaintBoundary용 GlobalKey 추가
+  final GlobalKey _remoteBoundaryKey = GlobalKey();
+
+  ui.Image? _capturedBoundaryImage; // 추가
 
   @override
   void initState() {
@@ -42,6 +56,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _connectionCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _checkConnectionState();
     });
+
+    // ML Kit + WebRTC FaceDetection 초기화
+    _webrtcFaceDetection = WebRTCFaceDetection();
+
+    // RepaintBoundary attach 하기 (initState에서 or renderer 초기화 직후)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _webrtcFaceDetection.attachBoundary(_remoteBoundaryKey);
+    });
+
+    // boundaryImageStream 구독
+    _webrtcFaceDetection.boundaryImageStream.listen((ui.Image image) {
+      setState(() {
+        _capturedBoundaryImage = image;
+      });
+    });
   }
 
   @override
@@ -49,6 +78,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _connectionCheckTimer?.cancel();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
+
+    // FaceDetection 정리
+    _webrtcFaceDetection.dispose();
+
     _signalingService.endCall();
     super.dispose();
   }
@@ -57,6 +90,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Future<void> _initRenderers() async {
     await _localRenderer.initialize();
     await _remoteRenderer.initialize();
+
+    // remoteRenderer를 MLKit faceDetection에 연결
+    _webrtcFaceDetection.attachRenderer(_remoteRenderer);
+    // facesStream 구독
+    _webrtcFaceDetection.facesStream.listen((faces) {
+      setState(() {
+        _detectedFaces = faces;
+      });
+    });
   }
 
   // 시그널링 설정
@@ -134,7 +176,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
 
       // Socket.IO 서버에 연결
-      await _signalingService.connect('http://172.30.1.15:5000');
+      await _signalingService.connect('http://195.109.1.137:5000');
 
       // 로컬 스트림 생성
       await _signalingService.createLocalStream();
@@ -181,7 +223,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
         // 2) 실제 매칭 요청
         final response = await http
-            .get(Uri.parse('http://172.30.1.15:5000/match?userId=$socketId'))
+            .get(Uri.parse('http://195.109.1.137:5000/match?userId=$socketId'))
             .timeout(const Duration(seconds: 10));
 
         // 3) 매칭 성공
@@ -500,157 +542,129 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // 상대방 비디오 화면 (전체 화면)
-            _isInCall && _remoteRenderer.srcObject != null
-                ? RTCVideoView(
-                  _remoteRenderer,
-                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                )
-                : Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: Colors.black87,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primary.withOpacity(0.7),
-                          ),
-                          child: const Icon(
-                            Icons.person,
-                            size: 80,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          '상대방',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+      body: Stack(
+        children: [
+          // 상대방 비디오 화면 (전체 화면)
+          Positioned.fill(
+            child: RepaintBoundary(
+              key: _remoteBoundaryKey,
+              child: RTCVideoView(_remoteRenderer),
+            ),
+          ),
 
-            // 자신의 비디오 화면 (오른쪽 상단 작은 화면)
-            Positioned(
-              top: 20,
-              right: 20,
-              child: Container(
-                width: 120,
-                height: 160,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child:
-                      _localRenderer.srcObject != null
-                          ? RTCVideoView(
-                            _localRenderer,
-                            mirror: true,
-                            objectFit:
-                                RTCVideoViewObjectFit
-                                    .RTCVideoViewObjectFitCover,
-                          )
-                          : Container(
-                            color: Colors.grey[800],
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.grey,
-                                  ),
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 40,
-                                    color: Colors.white,
-                                  ),
+          // FaceMaskOverlay에 cameraImage로 _capturedBoundaryImage 전달
+          Positioned.fill(
+            child: FaceMaskOverlay(
+              cameraImage: _capturedBoundaryImage, // null 아님
+              faces: _detectedFaces,
+            ),
+          ),
+
+          // 자신의 비디오 화면 (오른쪽 상단 작은 화면)
+          Positioned(
+            top: 20,
+            right: 20,
+            child: Container(
+              width: 120,
+              height: 160,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child:
+                    _localRenderer.srcObject != null
+                        ? RTCVideoView(
+                          _localRenderer,
+                          mirror: true,
+                          objectFit:
+                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        )
+                        : Container(
+                          color: Colors.grey[800],
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey,
                                 ),
-                                const SizedBox(height: 10),
-                                const Text(
-                                  '나',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                  ),
+                                child: const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.white,
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                '나',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
-                ),
+                        ),
               ),
             ),
+          ),
 
-            // 하단 컨트롤 버튼들
-            Positioned(
-              bottom: 40,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _isMicMuted ? Icons.mic_off : Icons.mic,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                    onPressed: _toggleMic,
+          // 하단 컨트롤 버튼들
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _isMicMuted ? Icons.mic_off : Icons.mic,
+                    color: Colors.white,
+                    size: 30,
                   ),
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.red,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.3),
-                          spreadRadius: 5,
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.call_end,
-                        color: Colors.white,
-                        size: 30,
+                  onPressed: _toggleMic,
+                ),
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withOpacity(0.3),
+                        spreadRadius: 5,
+                        blurRadius: 10,
                       ),
-                      onPressed: _endCall,
-                    ),
+                    ],
                   ),
-                  IconButton(
+                  child: IconButton(
                     icon: const Icon(
-                      Icons.switch_camera,
+                      Icons.call_end,
                       color: Colors.white,
                       size: 30,
                     ),
-                    onPressed: _switchCamera,
+                    onPressed: _endCall,
                   ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.switch_camera,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  onPressed: _switchCamera,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
