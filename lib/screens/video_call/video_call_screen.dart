@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../services/webrtc_face_detection.dart';
 import 'dart:ui' as ui; // toImage() 사용을 위해 추가 (이미 있다면 생략)
+import 'package:capstone_porj/config/app_config.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -175,8 +176,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         return;
       }
 
-      // Socket.IO 서버에 연결
-      await _signalingService.connect('http://195.109.1.137:5000');
+      // Socket.IO 서버에 연결 - AppConfig 사용
+      await _signalingService.connect(AppConfig.serverUrl);
 
       // 로컬 스트림 생성
       await _signalingService.createLocalStream();
@@ -223,7 +224,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
         // 2) 실제 매칭 요청
         final response = await http
-            .get(Uri.parse('http://195.109.1.137:5000/match?userId=$socketId'))
+            .get(Uri.parse(AppConfig.getMatchingUrl(socketId)))
             .timeout(const Duration(seconds: 10));
 
         // 3) 매칭 성공

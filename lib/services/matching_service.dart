@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'dart:io';
 // ignore: uri_does_not_exist
 import 'dart:html' if (dart.library.html) 'dart:html' as html;
+import 'package:capstone_porj/config/app_config.dart';
 
 class MatchingService {
   // 서버 주소 - 환경에 따라 다르게 설정
@@ -15,7 +16,7 @@ class MatchingService {
       try {
         return html.window.location.origin;
       } catch (e) {
-        return 'http://195.109.1.137:5000'; // 웹 환경의 기본값
+        return AppConfig.serverUrl; // AppConfig 사용
       }
     }
 
@@ -23,7 +24,7 @@ class MatchingService {
     const bool isProduction = bool.fromEnvironment('dart.vm.product');
     return isProduction
         ? 'http://your-production-server.com:5000' // 프로덕션 서버
-        : 'http://195.109.1.137:5000'; // 개발 서버
+        : AppConfig.serverUrl; // AppConfig 사용
   }
 
   // 매칭 요청에 재시도 로직 추가
@@ -35,8 +36,9 @@ class MatchingService {
 
     while (attempts < maxRetries) {
       try {
+        // AppConfig 사용
         final response = await http
-            .get(Uri.parse('$_baseUrl/match?userId=$userId'))
+            .get(Uri.parse(AppConfig.getMatchingUrl(userId)))
             .timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
