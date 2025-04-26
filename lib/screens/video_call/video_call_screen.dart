@@ -49,41 +49,52 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   @override
   void initState() {
     super.initState();
+    print('[VideoCallScreen] initState 시작');
     _initRenderers();
     _setupSignaling();
-    _connectToServer();
+    _connectToServer(); // 서버 연결 및 매칭 시작
 
-    // 연결 상태 주기적 확인
+    // 연결 상태 주기적 확인 (디버깅용)
     _connectionCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _checkConnectionState();
+      // _checkConnectionState(); // 필요시에만 활성화
     });
 
     // ML Kit + WebRTC FaceDetection 초기화
     _webrtcFaceDetection = WebRTCFaceDetection();
 
-    // RepaintBoundary attach 하기 (initState에서 or renderer 초기화 직후)
+    // RepaintBoundary attach 하기
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _webrtcFaceDetection.attachBoundary(_remoteBoundaryKey);
+      if (mounted) {
+        // 위젯이 마운트된 상태인지 확인
+        _webrtcFaceDetection.attachBoundary(_remoteBoundaryKey);
+      }
     });
 
     // boundaryImageStream 구독
     _webrtcFaceDetection.boundaryImageStream.listen((ui.Image image) {
-      setState(() {
-        _capturedBoundaryImage = image;
-      });
+      if (mounted) {
+        // 위젯이 마운트된 상태인지 확인
+        setState(() {
+          _capturedBoundaryImage = image;
+        });
+      }
     });
+    print('[VideoCallScreen] initState 완료');
   }
 
   @override
   void dispose() {
+    print('[VideoCallScreen] dispose 시작');
     _connectionCheckTimer?.cancel();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
-
-    // FaceDetection 정리
     _webrtcFaceDetection.dispose();
 
-    _signalingService.endCall();
+    // SignalingService의 자원 정리 및 연결 해제
+    _signalingService.endCall(); // 내부적으로 _cleanUp 호출하여 WebRTC 자원 정리
+    _signalingService.disconnect(); // 명시적으로 소켓 연결 해제
+
+    print('[VideoCallScreen] dispose 완료');
     super.dispose();
   }
 
