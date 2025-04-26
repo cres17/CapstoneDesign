@@ -40,24 +40,44 @@ class SignalingService {
 
   // 소켓 서버에 연결
   Future<void> connect(String serverUrl) async {
+    // 기존 소켓 연결이 있다면 해제
+    if (socket != null && socket!.connected) {
+      print('[SignalingService] 기존 소켓 연결 해제 시도');
+      socket?.disconnect();
+    }
+    // 기존 소켓 리스너 제거 (중복 리스너 방지)
+    socket?.clearListeners();
+
+    print('[SignalingService] 새로운 소켓 연결 시도: $serverUrl');
     socket = IO.io(
       serverUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
-          .disableAutoConnect()
+          .disableAutoConnect() // autoConnect 비활성화 유지
           .build(),
     );
 
-    socket?.connect();
-
+    // 연결 이벤트 리스너 설정
     socket?.on('connect', (_) {
-      print('소켓 서버에 연결됨');
-      // 연결 후 사용자 등록 (기기 ID나 사용자 ID 사용)
-      socket?.emit('register', socket?.id);
+      print('[SignalingService] 소켓 서버에 연결됨. 소켓 ID: ${socket?.id}');
+      // 연결 성공 시 즉시 사용자 등록
+      if (socket?.id != null) {
+        print('[SignalingService] 사용자 등록 시도: ${socket!.id}');
+        socket?.emit('register', socket!.id); // socket!.id 사용
+      } else {
+        print('[SignalingService] 오류: 소켓 ID가 없어 사용자 등록 불가');
+      }
+    });
+
+    // 연결 에러 리스너
+    socket?.on('connect_error', (err) {
+      print('[SignalingService] 소켓 연결 오류: $err');
+      // 필요시 연결 실패 처리 로직 추가
     });
 
     socket?.on('disconnect', (_) {
-      print('소켓 서버 연결 끊김');
+      print('[SignalingService] 소켓 서버 연결 끊김');
+      // 필요시 연결 끊김 관련 상태 초기화 로직 추가
     });
 
     socket?.on('incomingCall', (data) async {
@@ -76,26 +96,51 @@ class SignalingService {
 
     socket?.on('callAnswered', (data) async {
       print('통화 수락됨: $data');
-      await _setRemoteDescription(data['answer']);
+      // answer 데이터 구조 확인 및 안전하게 접근
+      final answerData = data['answer'];
+      if (answerData != null &&
+          answerData['sdp'] != null &&
+          answerData['type'] != null) {
+        await _setRemoteDescription(answerData);
+      } else {
+        print('[SignalingService] 오류: 유효하지 않은 answer 데이터 수신');
+      }
     });
 
     socket?.on('ice-candidate', (data) async {
       print('ICE 후보 수신: $data');
-      await _addIceCandidate(data['candidate']);
+      // candidate 데이터 구조 확인 및 안전하게 접근
+      final candidateData = data['candidate'];
+      if (candidateData != null &&
+          candidateData['candidate'] != null &&
+          candidateData['sdpMid'] != null &&
+          candidateData['sdpMLineIndex'] != null) {
+        await _addIceCandidate(candidateData);
+      } else {
+        print('[SignalingService] 오류: 유효하지 않은 ICE 후보 데이터 수신');
+      }
     });
 
     socket?.on('callEnded', (data) {
       print('통화 종료됨: $data');
-      endCall();
-      if (onCallEnded != null) {
+      endCall(); // endCall 내부에서 _cleanUp 호출됨
+      if (onCallEnded != null && data['caller'] != null) {
         onCallEnded!(data['caller']);
       }
     });
+
+    // 명시적으로 연결 시작
+    socket?.connect();
   }
 
-  // 연결 해제
+  // 연결 해제 메서드 강화
   void disconnect() {
+    print('[SignalingService] 소켓 연결 해제 요청');
     socket?.disconnect();
+    // 리스너도 정리
+    socket?.clearListeners();
+    socket = null; // 소켓 참조 제거
+    print('[SignalingService] 소켓 연결 해제 완료');
   }
 
   // 로컬 미디어 스트림 생성
@@ -293,19 +338,31 @@ class SignalingService {
 
   // 자원 정리
   Future<void> _cleanUp() async {
+    print('[SignalingService] WebRTC 자원 정리 시작');
     try {
       await peerConnection?.close();
       peerConnection = null;
+      print('[SignalingService] PeerConnection 정리됨');
 
-      localStream?.getTracks()?.forEach((track) => track.stop());
+      localStream?.getTracks().forEach((track) {
+        track.stop();
+        print('[SignalingService] 로컬 트랙 중지: ${track.kind}');
+      });
       localStream = null;
+      print('[SignalingService] 로컬 스트림 정리됨');
 
-      remoteStream?.getTracks()?.forEach((track) => track.stop());
+      remoteStream?.getTracks().forEach((track) {
+        track.stop();
+        print('[SignalingService] 원격 트랙 중지: ${track.kind}');
+      });
       remoteStream = null;
+      print('[SignalingService] 원격 스트림 정리됨');
 
       currentRoomId = null;
+      pendingOffer = null; // 추가: 보류 중인 offer 초기화
+      print('[SignalingService] WebRTC 자원 정리 완료');
     } catch (e) {
-      print('정리 오류: $e');
+      print('[SignalingService] 정리 오류: $e');
     }
   }
 
