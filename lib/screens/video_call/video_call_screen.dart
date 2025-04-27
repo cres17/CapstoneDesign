@@ -16,6 +16,8 @@ import 'package:capstone_porj/config/app_config.dart';
 import '../../services/recorder_service.dart';
 import '../../services/clova_speech_service.dart';
 import 'dart:io';
+import 'package:capstone_porj/services/openai_service.dart';
+import 'package:capstone_porj/services/analysis_storage_service.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -331,6 +333,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (text != null) {
         print('[VideoCallScreen] 변환된 텍스트: $text');
         CallResultData.saveCallResult(text);
+
+        // ✅ 여기서 OpenAI 분석 및 저장 호출!
+        await _analyzeAndSaveConversation(
+          text,
+          _remoteUserId ?? '상대방', // 상대방 이름/ID
+        );
+
         // 텍스트를 알림창으로 표시
         if (mounted) {
           showDialog(
@@ -399,6 +408,29 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           }
         }
       }
+    }
+  }
+
+  // 통화 종료 후 호출되는 함수 예시
+  Future<void> _analyzeAndSaveConversation(
+    String conversationText,
+    String partnerName,
+  ) async {
+    final openAIService = OpenAIService();
+    final analysisStorage = AnalysisStorageService();
+
+    final analysisResult = await openAIService.analyzeConversation(
+      conversationText,
+    );
+
+    if (analysisResult != null) {
+      final analysis = {
+        'date': DateTime.now().toIso8601String().substring(0, 10),
+        'partner': partnerName,
+        'conversation': conversationText,
+        'summary': analysisResult,
+      };
+      await analysisStorage.saveAnalysis(analysis);
     }
   }
 
