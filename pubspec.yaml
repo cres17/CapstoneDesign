@@ -48,6 +48,8 @@ dependencies:
   path_provider: ^2.1.5
   google_mlkit_face_detection: ^0.13.1
   image: ^4.5.4
+  flutter_sound: ^9.28.0
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -104,3 +106,4 @@ flutter:
   assets:
     - assets/images/ # 폴더 전체를 등록하거나
     - assets/images/default_mask.png # 특정 파일만 등록
+    - .env # 이 줄을 추가하세요

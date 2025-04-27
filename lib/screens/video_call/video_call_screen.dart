@@ -1,3 +1,4 @@
+import 'package:capstone_porj/models/call_result_data.dart';
 import 'package:capstone_porj/widgets/face_mask_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,6 +13,9 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../services/webrtc_face_detection.dart';
 import 'dart:ui' as ui; // toImage() 사용을 위해 추가 (이미 있다면 생략)
 import 'package:capstone_porj/config/app_config.dart';
+import '../../services/recorder_service.dart';
+import '../../services/clova_speech_service.dart';
+import 'dart:io';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -46,6 +50,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   ui.Image? _capturedBoundaryImage; // 추가
 
+  // 1. 서비스 인스턴스 선언
+  final RecorderService _recorderService = RecorderService();
+  final ClovaSpeechService _clovaSpeechService = ClovaSpeechService();
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +87,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         });
       }
     });
+
+    _recorderService.init();
+    _recorderService.startRecording(); // 통화 시작 시 녹음 시작
+
     print('[VideoCallScreen] initState 완료');
   }
 
@@ -93,6 +105,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     // SignalingService의 자원 정리 및 연결 해제
     _signalingService.endCall(); // 내부적으로 _cleanUp 호출하여 WebRTC 자원 정리
     _signalingService.disconnect(); // 명시적으로 소켓 연결 해제
+
+    _recorderService.dispose();
 
     print('[VideoCallScreen] dispose 완료');
     super.dispose();
@@ -301,8 +315,41 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   // 통화 종료
-  void _endCall() {
+  void _endCall() async {
+    print('[VideoCallScreen] _endCall 호출됨');
     _signalingService.endCall();
+    final filePath = await _recorderService.stopRecording();
+    print('[VideoCallScreen] 녹음 파일 경로: $filePath');
+    if (filePath != null) {
+      final file = File(filePath);
+      if (await file.exists()) {
+        print('[VideoCallScreen] 녹음 파일 크기: ${(await file.length())} bytes');
+      } else {
+        print('[VideoCallScreen] 녹음 파일이 존재하지 않습니다.');
+      }
+      final text = await _clovaSpeechService.requestSpeechToText(filePath);
+      if (text != null) {
+        print('[VideoCallScreen] 변환된 텍스트: $text');
+        CallResultData.saveCallResult(text);
+        // 텍스트를 알림창으로 표시
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder:
+                (_) => AlertDialog(
+                  title: const Text('대화 텍스트 변환 결과'),
+                  content: SingleChildScrollView(child: Text(text)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('확인'),
+                    ),
+                  ],
+                ),
+          );
+        }
+      }
+    }
     _showCallEndDialog();
   }
 
