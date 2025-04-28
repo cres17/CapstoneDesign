@@ -1,11 +1,43 @@
+import 'package:capstone_porj/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../main/main_screen.dart';
+import '../../services/auth_service.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _pwController = TextEditingController();
+
+  Future<void> _handleLogin() async {
+    try {
+      final result = await AuthService.login(
+        _idController.text.trim(),
+        _pwController.text.trim(),
+      );
+      // 로그인 성공 시 메인페이지로 이동
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,32 +76,26 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 40),
 
               // 아이디 입력 필드
-              const CustomTextField(
+              CustomTextField(
+                controller: _idController,
                 hintText: '아이디',
-                prefixIcon: Icon(Icons.person_outline),
+                prefixIcon: const Icon(Icons.person_outline),
               ),
 
               const SizedBox(height: 16),
 
               // 비밀번호 입력 필드
-              const CustomTextField(
+              CustomTextField(
+                controller: _pwController,
                 hintText: '비밀번호',
                 obscureText: true,
-                prefixIcon: Icon(Icons.lock_outline),
+                prefixIcon: const Icon(Icons.lock_outline),
               ),
 
               const SizedBox(height: 40),
 
               // 로그인 버튼
-              CustomButton(
-                text: '로그인',
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MainScreen()),
-                  );
-                },
-              ),
+              CustomButton(text: '로그인', onPressed: _handleLogin),
 
               const SizedBox(height: 16),
 
