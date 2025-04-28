@@ -1,0 +1,17 @@
+# node_modules (패키지 설치 폴더)
+node_modules/
+
+# 로그 파일
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 환경설정/민감정보
+.env
+
+# 운영체제별 불필요 파일
+.DS_Store
+Thumbs.db
+
+# 기타
+*.log 

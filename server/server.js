@@ -1,14 +1,30 @@
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const app = express();
+
+// ★★★ 반드시 라우터 등록 전에 위치해야 함!
+app.use(express.json());
+
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
   }
+});
+
+// MySQL 커넥션 풀 생성
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
 });
 
 // 활성 사용자를 저장할 객체
@@ -192,6 +208,77 @@ io.on('connection', (socket) => {
       waitingUsers = waitingUsers.filter(id => id !== socket.userId);
     }
   });
+});
+
+// 회원가입 API
+app.post('/signup', async (req, res) => {
+  const { username, password, nickname } = req.body;
+  if (!username || !password || !nickname) {
+    return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
+  }
+
+  try {
+    // 아이디 중복 체크
+    const [userRows] = await db.query('SELECT id FROM users WHERE username = ?', [username]);
+    if (userRows.length > 0) {
+      return res.status(409).json({ error: '다른 id를 사용해주세요.' });
+    }
+    // 닉네임 중복 체크
+    const [nickRows] = await db.query('SELECT id FROM users WHERE nickname = ?', [nickname]);
+    if (nickRows.length > 0) {
+      return res.status(409).json({ error: '다른 닉네임을 사용해주세요.' });
+    }
+
+    // 비밀번호 해싱
+    const password_hash = await bcrypt.hash(password, 10);
+
+    // 회원가입
+    await db.query(
+      'INSERT INTO users (username, password_hash, nickname) VALUES (?, ?, ?)',
+      [username, password_hash, nickname]
+    );
+
+    return res.status(201).json({ message: '회원가입 성공' });
+  } catch (err) {
+    console.error('회원가입 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 로그인 API
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: '아이디와 비밀번호를 입력해주세요.' });
+  }
+
+  try {
+    const [rows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
+    if (rows.length === 0) {
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+    const user = rows[0];
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+
+    // (선택) JWT 토큰 발급
+    // const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    return res.status(200).json({
+      message: '로그인 성공',
+      // token, // 필요시 토큰 반환
+      user: {
+        id: user.id,
+        username: user.username,
+        nickname: user.nickname,
+      },
+    });
+  } catch (err) {
+    console.error('로그인 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  }
 });
 
 const PORT = process.env.PORT || 5000;

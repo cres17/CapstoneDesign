@@ -100,3 +100,6 @@ coverage/
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 
 .env
+
+# 서버 환경변수 파일
+server/.env
