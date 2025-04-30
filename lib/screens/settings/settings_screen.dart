@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../splash/splash_screen.dart';
@@ -20,6 +22,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'address': '서울특별시 강남구',
     'profileImage': 'https://via.placeholder.com/150',
   };
+
+  File? _profileImageFile;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString('profile_image_path');
+    if (path != null && await File(path).exists()) {
+      setState(() {
+        _profileImageFile = File(path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,15 +70,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       CircleAvatar(
                         radius: 40,
                         backgroundColor: AppColors.lightGrey,
-                        backgroundImage: NetworkImage(
-                          _userData['profileImage'],
-                        ),
+                        backgroundImage:
+                            _profileImageFile != null
+                                ? FileImage(_profileImageFile!)
+                                : NetworkImage(_userData['profileImage'])
+                                    as ImageProvider,
                         onBackgroundImageError: (_, __) {},
-                        child: Icon(
-                          Icons.person,
-                          size: 40,
-                          color: Colors.grey[400],
-                        ),
+                        child:
+                            _profileImageFile == null
+                                ? Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.grey[400],
+                                )
+                                : null,
                       ),
                       const SizedBox(width: 20),
                       Expanded(

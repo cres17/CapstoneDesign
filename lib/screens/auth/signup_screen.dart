@@ -5,6 +5,10 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../main/main_screen.dart';
 import '../../services/auth_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -15,6 +19,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   String _selectedGender = '남성';
+  File? _profileImage;
 
   // 추가: 입력값 컨트롤러
   final TextEditingController _idController = TextEditingController();
@@ -36,6 +41,10 @@ class _SignupScreenState extends State<SignupScreen> {
           const SnackBar(content: Text('회원가입이 완료되었습니다. 로그인 해주세요.')),
         );
       }
+      if (_profileImage != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profile_image_path', _profileImage!.path);
+      }
     } else {
       // 에러 메시지 표시
       if (mounted) {
@@ -43,6 +52,22 @@ class _SignupScreenState extends State<SignupScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(error)));
       }
+    }
+  }
+
+  // 이미지 선택 및 로컬 저장 함수
+  Future<void> _pickProfileImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
+      final savedImage = await File(
+        picked.path,
+      ).copy('${appDir.path}/$fileName');
+      setState(() {
+        _profileImage = savedImage;
+      });
     }
   }
 
@@ -66,40 +91,39 @@ class _SignupScreenState extends State<SignupScreen> {
               Center(
                 child: Stack(
                   children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.lightGrey,
-                        border: Border.all(color: AppColors.primary, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: AppColors.darkGrey,
-                      ),
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: AppColors.lightGrey,
+                      backgroundImage:
+                          _profileImage != null
+                              ? FileImage(_profileImage!)
+                              : null,
+                      child:
+                          _profileImage == null
+                              ? const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: AppColors.darkGrey,
+                              )
+                              : null,
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primary,
-                        ),
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(
-                            Icons.camera_alt,
-                            size: 18,
-                            color: Colors.white,
+                      child: InkWell(
+                        onTap: _pickProfileImage,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
                           ),
-                          onPressed: () {
-                            // 이미지 선택 로직 추가 예정
-                          },
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
