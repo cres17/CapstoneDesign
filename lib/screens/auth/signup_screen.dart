@@ -10,6 +10,30 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// 관심사 리스트
+final List<String> interestList = [
+  '영화/드라마 감상',
+  '음악 감상',
+  '독서',
+  '운동/스포츠',
+  '여행',
+  '요리/베이킹',
+  '게임',
+  '사진/영상 촬영',
+  '미술/공예',
+  '패션/뷰티',
+  'IT/테크',
+  '자동차/오토바이',
+  '반려동물',
+  '자기계발/공부',
+  '봉사활동',
+  '투자/재테크',
+  '건강/피트니스',
+  '맛집 탐방',
+  '춤/댄스',
+  '가드닝/식물 키우기',
+];
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
 
@@ -26,12 +50,25 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _pwController = TextEditingController();
   final TextEditingController _nicknameController = TextEditingController();
 
+  // 관심사 선택 상태 저장
+  List<bool> _selectedInterests = List.generate(20, (index) => false);
+
   // 회원가입 처리 함수
   Future<void> _handleSignup() async {
+    // 관심사 선택값 추출
+    List<int> selectedIndexes = [];
+    for (int i = 0; i < _selectedInterests.length; i++) {
+      if (_selectedInterests[i]) {
+        selectedIndexes.add(i + 1);
+      }
+    }
+    String interestsString = selectedIndexes.join(',');
+
     final error = await AuthService.signup(
       _idController.text.trim(),
       _pwController.text.trim(),
       _nicknameController.text.trim(),
+      interestsString,
     );
     if (error == null) {
       // 성공 시 로그인 페이지로 이동
@@ -209,6 +246,25 @@ class _SignupScreenState extends State<SignupScreen> {
               const CustomTextField(
                 hintText: '주소',
                 prefixIcon: Icon(Icons.location_on_outlined),
+              ),
+
+              const SizedBox(height: 24),
+              Text('관심사 선택', style: TextStyle(fontWeight: FontWeight.bold)),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: interestList.length,
+                itemBuilder: (context, index) {
+                  return CheckboxListTile(
+                    title: Text(interestList[index]),
+                    value: _selectedInterests[index],
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _selectedInterests[index] = value ?? false;
+                      });
+                    },
+                  );
+                },
               ),
 
               const SizedBox(height: 40),

@@ -7,6 +7,7 @@ class AuthService {
     String username,
     String password,
     String nickname,
+    String interests,
   ) async {
     final url = Uri.parse('${AppConfig.serverUrl}/signup');
     final response = await http.post(
@@ -16,6 +17,7 @@ class AuthService {
         'username': username,
         'password': password,
         'nickname': nickname,
+        'interests': interests,
       }),
     );
     if (response.statusCode == 201) {
