@@ -212,7 +212,7 @@ io.on('connection', (socket) => {
 
 // 회원가입 API
 app.post('/signup', async (req, res) => {
-  const { username, password, nickname } = req.body;
+  const { username, password, nickname, interests } = req.body;
   if (!username || !password || !nickname) {
     return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
   }
@@ -234,8 +234,8 @@ app.post('/signup', async (req, res) => {
 
     // 회원가입
     await db.query(
-      'INSERT INTO users (username, password_hash, nickname) VALUES (?, ?, ?)',
-      [username, password_hash, nickname]
+      'INSERT INTO users (username, password_hash, nickname, interests) VALUES (?, ?, ?, ?)',
+      [username, password_hash, nickname, interests || null]
     );
 
     return res.status(201).json({ message: '회원가입 성공' });
