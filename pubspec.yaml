@@ -42,6 +42,10 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_lints: ^5.0.0
   intl: ^0.20.2
+  flutter_webrtc: ^0.13.1+hotfix.1
+  socket_io_client: ^3.1.1
+  permission_handler: ^12.0.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -94,3 +98,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  assets:
+    - assets/images/ # 폴더 전체를 등록하거나
+    - assets/images/default_mask.png # 특정 파일만 등록
+    - .env # 이 줄을 추가하세요

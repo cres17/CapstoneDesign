@@ -1,0 +1,88 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+// 웹 환경에서만 dart:html 임포트
+import 'dart:ui' as ui;
+import 'dart:io';
+// ignore: uri_does_not_exist
+import 'dart:html' if (dart.library.html) 'dart:html' as html;
+import 'package:capstone_porj/config/app_config.dart';
+
+class MatchingService {
+  // 서버 주소 - 환경에 따라 다르게 설정
+  static String get _baseUrl {
+    // 웹일 경우 현재 호스트 사용 (CORS 문제 방지)
+    if (kIsWeb) {
+      try {
+        return html.window.location.origin;
+      } catch (e) {
+        return AppConfig.serverUrl; // AppConfig 사용
+      }
+    }
+
+    // 테스트용/개발용 서버 주소 분리
+    const bool isProduction = bool.fromEnvironment('dart.vm.product');
+    return isProduction
+        ? 'http://your-production-server.com:5000' // 프로덕션 서버
+        : AppConfig.serverUrl; // AppConfig 사용
+  }
+
+  // 매칭 요청에 재시도 로직 추가
+  static Future<Map<String, dynamic>?> requestMatching(
+    String userId, {
+    int maxRetries = 3,
+  }) async {
+    int attempts = 0;
+
+    while (attempts < maxRetries) {
+      try {
+        // AppConfig 사용
+        final response = await http
+            .get(Uri.parse(AppConfig.getMatchingUrl(userId)))
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          // 매칭 성공
+          return jsonDecode(response.body); // 매칭 결과 반환
+        } else if (response.statusCode == 404) {
+          // 매칭 가능한 사용자가 없을 때
+          // 내부에서 일정 횟수만큼 자동 재시도
+          print('매칭 실패(404) - 재시도중... 시도 횟수: ${attempts + 1}/$maxRetries');
+          await Future.delayed(const Duration(seconds: 3));
+          attempts++;
+          continue;
+        } else {
+          // 그 외 상태코드는 즉시 예외 처리
+          throw Exception('매칭 요청 실패: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('매칭 오류 (시도 ${attempts + 1}/$maxRetries): $e');
+
+        if (attempts >= maxRetries - 1) {
+          // 최대 재시도 횟수 도달 시 rethrow
+          rethrow;
+        }
+
+        attempts++;
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
+
+    // 모든 재시도 실패 시 예외 발생
+    throw Exception('최대 재시도 횟수 초과');
+  }
+
+  // 연결 테스트
+  static Future<bool> testConnection() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/test'))
+          .timeout(const Duration(seconds: 5));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('서버 연결 테스트 실패: $e');
+      return false;
+    }
+  }
+}

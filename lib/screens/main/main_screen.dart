@@ -7,6 +7,7 @@ import '../prediction/prediction_screen.dart';
 import '../date_recommendation/date_recommendation_screen.dart';
 import '../chat/chat_screen.dart';
 import '../settings/settings_screen.dart';
+import 'package:capstone_porj/models/call_result_data.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -17,6 +18,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  bool _dialogShown = false;
 
   final List<Widget> _pages = [
     const MainHomePage(),
@@ -24,6 +26,37 @@ class _MainScreenState extends State<MainScreen> {
     const ChatScreen(),
     const SettingsScreen(),
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 대화 결과가 있고, 아직 다이얼로그를 안 띄웠으면 띄우기
+    if (CallResultData.hasResult() && !_dialogShown) {
+      _dialogShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          builder:
+              (_) => AlertDialog(
+                title: const Text('대화 텍스트 변환 결과'),
+                content: SingleChildScrollView(
+                  child: Text(CallResultData.transcriptText ?? ''),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // 필요하다면 결과 초기화
+                      // CallResultData.clear();
+                    },
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
