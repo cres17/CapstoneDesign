@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:xml/xml.dart' as xml;
 import '../../constants/app_colors.dart';
+import 'dart:convert'; // 한글 깨짐 방지용
 
 class DateRecommendationScreen extends StatefulWidget {
   const DateRecommendationScreen({Key? key}) : super(key: key);
@@ -10,44 +14,113 @@ class DateRecommendationScreen extends StatefulWidget {
 }
 
 class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  bool _hasSearched = false;
+  // 위치기반 데이트 장소 데이터
+  List<Map<String, dynamic>> _dateSpots = [];
+  bool _isLoading = false;
+  String? _errorMsg;
+  bool _hasRequested = false; // 버튼 클릭 여부
 
-  // 예시 데이트 장소 데이터
-  final List<Map<String, dynamic>> _dateSpots = [
-    {
-      'title': '서울숲 카페거리',
-      'description': '자연 속에서 여유로운 대화를 나눌 수 있는 감성 카페가 많은 곳입니다.',
-      'location': '서울 성동구',
-      'rating': 4.5,
-      'tags': ['카페', '자연', '데이트'],
-      'imageUrl': 'https://via.placeholder.com/150',
-    },
-    {
-      'title': '남산 타워',
-      'description': '서울의 야경을 한눈에 볼 수 있는 로맨틱한 장소입니다.',
-      'location': '서울 중구',
-      'rating': 4.7,
-      'tags': ['야경', '전망', '로맨틱'],
-      'imageUrl': 'https://via.placeholder.com/150',
-    },
-    {
-      'title': '한강 피크닉',
-      'description': '한강에서 도시락을 먹으며 여유로운 시간을 보낼 수 있어요.',
-      'location': '서울 여의도',
-      'rating': 4.2,
-      'tags': ['피크닉', '한강', '야외'],
-      'imageUrl': 'https://via.placeholder.com/150',
-    },
-    {
-      'title': '경복궁 산책',
-      'description': '한국의 전통적인 아름다움을 함께 느낄 수 있는 곳입니다.',
-      'location': '서울 종로구',
-      'rating': 4.6,
-      'tags': ['역사', '문화', '산책'],
-      'imageUrl': 'https://via.placeholder.com/150',
-    },
-  ];
+  // 위치 받아오기 및 API 요청
+  Future<void> _fetchDateSpots() async {
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
+      _dateSpots = [];
+    });
+
+    try {
+      // 위치 권한 요청
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _errorMsg = '위치 권한이 필요합니다.';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _errorMsg = '위치 권한이 영구적으로 거부되었습니다. 설정에서 권한을 허용해주세요.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 현재 위치 받아오기
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      double mapX = position.longitude;
+      double mapY = position.latitude;
+
+      print('현재 위치: 경도(mapX)=$mapX, 위도(mapY)=$mapY');
+
+      // 디코딩된 서비스키 사용
+      final String serviceKey =
+          'ZhUweX28UEl3Hx5AekfMOBgq4GkoC+9j//0fcItNuyS0P4gbgx5QQv6rbteypofg7x5qk5gfgawwtFA+hy0WHw==';
+      final String encodedServiceKey = Uri.encodeComponent(serviceKey);
+
+      // 요청 URL 생성
+      final String url =
+          'https://apis.data.go.kr/B551011/KorService1/locationBasedList1'
+          '?MobileOS=AND'
+          '&MobileApp=daon'
+          '&mapX=$mapX'
+          '&mapY=$mapY'
+          '&radius=5000'
+          '&contentTypeId=39'
+          '&serviceKey=$encodedServiceKey'
+          '&_type=xml'
+          '&numOfRows=10';
+
+      print('요청 URL: $url');
+      print('서비스키(디코딩): $serviceKey');
+      print('서비스키(인코딩): $encodedServiceKey');
+
+      final response = await http.get(Uri.parse(url));
+      print('응답 코드: ${response.statusCode}');
+      final decodedBody = utf8.decode(response.bodyBytes);
+      print('응답 본문: $decodedBody');
+
+      if (response.statusCode == 200) {
+        final document = xml.XmlDocument.parse(decodedBody);
+        final items = document.findAllElements('item');
+        List<Map<String, dynamic>> spots = [];
+        for (var item in items) {
+          spots.add({
+            'title': item.getElement('title')?.text ?? '',
+            'description': item.getElement('addr1')?.text ?? '',
+            'location': item.getElement('addr1')?.text ?? '',
+            'rating': 4.0, // 별점 데이터가 없으므로 임의값
+            'tags': ['음식점', '데이트'],
+            'imageUrl':
+                item.getElement('firstimage')?.text.isNotEmpty == true
+                    ? item.getElement('firstimage')!.text
+                    : 'https://via.placeholder.com/150',
+          });
+        }
+        setState(() {
+          _dateSpots = spots;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMsg = 'API 요청 실패: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = '오류 발생: $e';
+        _isLoading = false;
+      });
+      print('오류 발생: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,67 +130,57 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 검색창
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '상대방 닉네임 검색',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _hasSearched = false;
-                    });
-                  },
+            // "데이트장소 추천" 버튼
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  setState(() {
+                    _hasRequested = true;
+                  });
+                  await _fetchDateSpots();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
-                filled: true,
-                fillColor: AppColors.lightGrey,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+                child: const Text(
+                  '데이트장소 추천',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              onSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  setState(() {
-                    _hasSearched = true;
-                  });
-                }
-              },
             ),
-
             const SizedBox(height: 20),
 
-            if (_hasSearched) ...[
-              Text(
-                '${_searchController.text}님과 함께 방문하면 좋을 장소',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 데이트 장소 추천 카드 목록
+            if (_hasRequested)
               Expanded(
-                child: ListView.builder(
-                  itemCount: _dateSpots.length,
-                  itemBuilder: (context, index) {
-                    final spot = _dateSpots[index];
-                    return DatePlaceCard(
-                      title: spot['title'],
-                      description: spot['description'],
-                      location: spot['location'],
-                      rating: spot['rating'],
-                      tags: List<String>.from(spot['tags']),
-                      imageUrl: spot['imageUrl'],
-                    );
-                  },
-                ),
-              ),
-            ] else ...[
+                child:
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _errorMsg != null
+                        ? Center(child: Text(_errorMsg!))
+                        : _dateSpots.isEmpty
+                        ? const Center(child: Text('추천 장소가 없습니다.'))
+                        : ListView.builder(
+                          itemCount: _dateSpots.length,
+                          itemBuilder: (context, index) {
+                            final spot = _dateSpots[index];
+                            return DatePlaceCard(
+                              title: spot['title'],
+                              description: spot['description'],
+                              location: spot['location'],
+                              rating: spot['rating'],
+                              tags: List<String>.from(spot['tags']),
+                              imageUrl: spot['imageUrl'],
+                            );
+                          },
+                        ),
+              )
+            else
               const Expanded(
                 child: Center(
                   child: Column(
@@ -126,7 +189,7 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
                       Icon(Icons.search, size: 80, color: AppColors.grey),
                       SizedBox(height: 16),
                       Text(
-                        '상대방의 닉네임을 검색하여\n데이트 장소를 추천받아보세요.',
+                        '버튼을 눌러 내 주변 데이트 장소를 추천받아보세요.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -137,7 +200,6 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
                   ),
                 ),
               ),
-            ],
           ],
         ),
       ),
