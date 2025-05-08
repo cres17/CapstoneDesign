@@ -14,4 +14,20 @@ yarn-error.log
 Thumbs.db
 
 # 기타
-*.log 
+*.log
+
+# VSCode 등 IDE 설정
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# npm 캐시
+.npm/
+
+# coverage, 빌드 산출물
+coverage/
+dist/
+build/ 

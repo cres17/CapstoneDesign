@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:capstone_porj/config/app_config.dart';
 
@@ -8,6 +9,7 @@ class AuthService {
     String password,
     String nickname,
     String interests,
+    String gender,
   ) async {
     final url = Uri.parse('${AppConfig.serverUrl}/signup');
     final response = await http.post(
@@ -18,6 +20,7 @@ class AuthService {
         'password': password,
         'nickname': nickname,
         'interests': interests,
+        'gender': gender,
       }),
     );
     if (response.statusCode == 201) {
@@ -25,6 +28,32 @@ class AuthService {
     } else {
       final data = jsonDecode(response.body);
       return data['error'] ?? '회원가입 실패';
+    }
+  }
+
+  // 프로필 이미지 업로드
+  static Future<String?> uploadProfileImage(
+    String nickname,
+    File profileImage,
+  ) async {
+    final url = Uri.parse('${AppConfig.serverUrl}/upload-profile-image');
+    var request = http.MultipartRequest('POST', url);
+    request.fields['nickname'] = nickname;
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'profile_image',
+        profileImage.path,
+        filename: '$nickname.png',
+      ),
+    );
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      return null; // 성공
+    } else {
+      final data = jsonDecode(response.body);
+      return data['error'] ?? '프로필 이미지 업로드 실패';
     }
   }
 
