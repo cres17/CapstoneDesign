@@ -69,11 +69,26 @@ class _SignupScreenState extends State<SignupScreen> {
       _pwController.text.trim(),
       _nicknameController.text.trim(),
       interestsString,
+      _selectedGender,
     );
     if (error == null) {
+      // 회원가입 성공 시에만 이미지 업로드
+      if (_profileImage != null) {
+        final uploadError = await AuthService.uploadProfileImage(
+          _nicknameController.text.trim(),
+          _profileImage!,
+        );
+        if (uploadError != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('프로필 이미지 업로드 실패: $uploadError')),
+            );
+          }
+        }
+      }
       // 성공 시 로그인 페이지로 이동
       if (mounted) {
-        Navigator.pop(context); // 또는 Navigator.pushReplacement로 LoginScreen 이동
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('회원가입이 완료되었습니다. 로그인 해주세요.')),
         );

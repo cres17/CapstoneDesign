@@ -103,3 +103,36 @@ coverage/
 
 # 서버 환경변수 파일
 server/.env
+# node_modules (패키지 설치 폴더)
+node_modules/
+
+# 로그 파일
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 환경설정/민감정보
+.env
+
+# 운영체제별 불필요 파일
+.DS_Store
+Thumbs.db
+
+# 기타
+*.log
+
+# VSCode 등 IDE 설정
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# npm 캐시
+.npm/
+
+# coverage, 빌드 산출물
+coverage/
+dist/
+build/ 

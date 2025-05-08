@@ -4,6 +4,8 @@ const socketIO = require('socket.io');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -35,6 +37,19 @@ const activeCalls = {};
 
 // 대기 중인 사용자 목록
 let waitingUsers = [];
+
+// 프로필 이미지 저장 경로 및 파일명 지정
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'C:/capstone/CapstoneDesign/assets/profile');
+  },
+  filename: function (req, file, cb) {
+    // 닉네임으로 파일명 지정, 확장자는 png로 고정
+    const nickname = req.body.nickname || 'profile';
+    cb(null, `${nickname}.png`);
+  }
+});
+const upload = multer({ storage: storage });
 
 // 매칭 API 엔드포인트
 app.get('/match', (req, res) => {
@@ -210,20 +225,19 @@ io.on('connection', (socket) => {
   });
 });
 
-// 회원가입 API
+// 회원가입(텍스트 정보만)
 app.post('/signup', async (req, res) => {
-  const { username, password, nickname, interests } = req.body;
-  if (!username || !password || !nickname) {
+  const { username, password, nickname, interests, gender } = req.body;
+  if (!username || !password || !nickname || !gender) {
     return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
   }
 
   try {
-    // 아이디 중복 체크
+    // 아이디/닉네임 중복 체크
     const [userRows] = await db.query('SELECT id FROM users WHERE username = ?', [username]);
     if (userRows.length > 0) {
       return res.status(409).json({ error: '다른 id를 사용해주세요.' });
     }
-    // 닉네임 중복 체크
     const [nickRows] = await db.query('SELECT id FROM users WHERE nickname = ?', [nickname]);
     if (nickRows.length > 0) {
       return res.status(409).json({ error: '다른 닉네임을 사용해주세요.' });
@@ -234,13 +248,33 @@ app.post('/signup', async (req, res) => {
 
     // 회원가입
     await db.query(
-      'INSERT INTO users (username, password_hash, nickname, interests) VALUES (?, ?, ?, ?)',
-      [username, password_hash, nickname, interests || null]
+      'INSERT INTO users (username, password_hash, nickname, interests, gender) VALUES (?, ?, ?, ?, ?)',
+      [username, password_hash, nickname, interests || null, gender]
     );
 
     return res.status(201).json({ message: '회원가입 성공' });
   } catch (err) {
     console.error('회원가입 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 프로필 이미지 업로드 API (닉네임 기반)
+app.post('/upload-profile-image', upload.single('profile_image'), async (req, res) => {
+  const { nickname } = req.body;
+  if (!nickname || !req.file) {
+    return res.status(400).json({ error: '닉네임과 이미지가 필요합니다.' });
+  }
+  const profileImagePath = path.join('assets/profile', `${nickname}.png`);
+  try {
+    // DB에 이미지 경로 업데이트
+    await db.query(
+      'UPDATE users SET profile_image = ? WHERE nickname = ?',
+      [profileImagePath, nickname]
+    );
+    return res.status(200).json({ message: '이미지 업로드 성공', profile_image: profileImagePath });
+  } catch (err) {
+    console.error('프로필 이미지 업로드 오류:', err);
     return res.status(500).json({ error: '서버 오류' });
   }
 });
