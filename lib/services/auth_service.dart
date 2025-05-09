@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:capstone_porj/config/app_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static Future<String?> signup(
@@ -57,10 +58,7 @@ class AuthService {
     }
   }
 
-  static Future<Map<String, dynamic>?> login(
-    String username,
-    String password,
-  ) async {
+  static Future<String?> login(String username, String password) async {
     final url = Uri.parse('${AppConfig.serverUrl}/login');
     final response = await http.post(
       url,
@@ -68,10 +66,21 @@ class AuthService {
       body: jsonEncode({'username': username, 'password': password}),
     );
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      final user = data['user'];
+      if (user != null && user['id'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('userId', user['id']);
+      }
+      // 토큰도 필요하면 저장
+      if (data['token'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwtToken', data['token']);
+      }
+      return null;
     } else {
       final data = jsonDecode(response.body);
-      throw data['error'] ?? '로그인 실패';
+      return data['error'] ?? '로그인 실패';
     }
   }
 }
