@@ -30,7 +30,7 @@ const db = mysql.createPool({
 });
 
 // 활성 사용자를 저장할 객체
-const activeUsers = {};
+const activeUsers = {}; // { userId: { socketId, userId } }
 
 // 활성 통화 관리 (중복 방지용)
 const activeCalls = {};
@@ -54,35 +54,25 @@ const upload = multer({ storage: storage });
 // 매칭 API 엔드포인트
 app.get('/match', (req, res) => {
   const userId = req.query.userId;
-  
-  console.log(`매칭 요청: ${userId}`);
-  
+  // userId는 반드시 숫자(문자열로 올 수 있으니 Number로 변환)
   if (!userId) {
-    console.log('오류: 사용자 ID가 없음');
     return res.status(400).json({ error: '사용자 ID가 필요합니다' });
   }
-  
   // 자기 자신을 제외한 활성 사용자 중에서 매칭
   const availableUsers = Object.keys(activeUsers).filter(id => id !== userId);
-  console.log(`매칭 가능한 사용자: ${availableUsers.length ? availableUsers.join(', ') : '없음'}`);
-  
   if (availableUsers.length === 0) {
     // 매칭 가능한 사용자가 없음
     waitingUsers.push(userId); // 대기 목록에 추가
     console.log(`대기 목록에 추가: ${userId}, 현재 대기 목록: ${waitingUsers.join(', ')}`);
     return res.status(404).json({ error: '현재 매칭 가능한 사용자가 없습니다' });
   }
-  
   // 무작위로 사용자 선택
   const randomIndex = Math.floor(Math.random() * availableUsers.length);
   const matchedUserId = availableUsers[randomIndex];
-  
-  console.log(`매칭 성공: ${userId} -> ${matchedUserId}`);
-  
-  // 대기 목록에서 제거
-  waitingUsers = waitingUsers.filter(id => id !== userId && id !== matchedUserId);
-  
-  return res.status(200).json({ matchedUserId });
+  // 실제 user id(숫자) 반환
+  return res.status(200).json({
+    matchedUserId: Number(matchedUserId)
+  });
 });
 
 io.on('connection', (socket) => {
@@ -90,13 +80,13 @@ io.on('connection', (socket) => {
   
   // 사용자 등록
   socket.on('register', (userId) => {
-    console.log('사용자 등록:', userId || socket.id);
-    
-    // userId가 없으면 socket.id 사용
-    const id = userId || socket.id;
-    activeUsers[id] = socket.id;
-    socket.userId = id;
-    
+    // userId는 반드시 숫자(실제 DB의 id)여야 함
+    if (!userId) {
+      console.log('userId가 없습니다. 등록 실패');
+      return;
+    }
+    activeUsers[userId] = { socketId: socket.id, userId: userId };
+    socket.userId = userId;
     console.log('현재 활성 사용자:', Object.keys(activeUsers));
   });
   
@@ -105,8 +95,8 @@ io.on('connection', (socket) => {
     const { target, offer } = data;
     console.log(`통화 요청: ${socket.userId} -> ${target}`);
     
-    if (activeUsers[target]) {
-      io.to(activeUsers[target]).emit('incomingCall', {
+    if (activeUsers[target]?.socketId) {
+      io.to(activeUsers[target].socketId).emit('incomingCall', {
         caller: socket.userId,
         offer
       });
@@ -120,9 +110,9 @@ io.on('connection', (socket) => {
     const { caller, answer } = data;
     console.log(`통화 응답: ${socket.userId} -> ${caller}`);
     
-    if (activeUsers[caller]) {
+    if (activeUsers[caller]?.socketId) {
       console.log(`응답 전달: ${socket.userId} -> ${caller}`);
-      io.to(activeUsers[caller]).emit('callAnswered', {
+      io.to(activeUsers[caller]?.socketId).emit('callAnswered', {
         answerer: socket.userId,
         answer
       });
@@ -140,8 +130,8 @@ io.on('connection', (socket) => {
     const { target, error } = data;
     console.log(`통화 에러 발생: ${socket.userId} -> ${target}, 에러: ${error}`);
     
-    if (activeUsers[target]) {
-      io.to(activeUsers[target]).emit('callError', {
+    if (activeUsers[target]?.socketId) {
+      io.to(activeUsers[target]?.socketId).emit('callError', {
         sender: socket.userId,
         error
       });
@@ -152,8 +142,8 @@ io.on('connection', (socket) => {
   socket.on('ice-candidate', (data) => {
     const { target, candidate } = data;
     
-    if (activeUsers[target]) {
-      io.to(activeUsers[target]).emit('ice-candidate', {
+    if (activeUsers[target]?.socketId) {
+      io.to(activeUsers[target]?.socketId).emit('ice-candidate', {
         sender: socket.userId,
         candidate
       });
@@ -164,8 +154,8 @@ io.on('connection', (socket) => {
   socket.on('endCall', (data) => {
     const { target } = data;
     
-    if (activeUsers[target]) {
-      io.to(activeUsers[target]).emit('callEnded', {
+    if (activeUsers[target]?.socketId) {
+      io.to(activeUsers[target]?.socketId).emit('callEnded', {
         caller: socket.userId
       });
     }
@@ -176,8 +166,8 @@ io.on('connection', (socket) => {
     const { caller } = data;
     console.log(`통화 거절: ${socket.userId} -> ${caller}`);
     
-    if (activeUsers[caller]) {
-      io.to(activeUsers[caller]).emit('callRejected', {
+    if (activeUsers[caller]?.socketId) {
+      io.to(activeUsers[caller]?.socketId).emit('callRejected', {
         rejector: socket.userId
       });
     }
@@ -189,7 +179,7 @@ io.on('connection', (socket) => {
     console.log(`통화 수락 알림: ${socket.userId} -> ${caller}`);
     
     // 중복 알림 방지를 위한 통화 상태 관리 추가
-    if (!activeUsers[caller]) {
+    if (!activeUsers[caller]?.socketId) {
       console.log(`오류: 발신자(${caller})가 활성 상태가 아님`);
       return;
     }
@@ -208,7 +198,7 @@ io.on('connection', (socket) => {
       timestamp: Date.now()
     };
     
-    io.to(activeUsers[caller]).emit('callAccepted', {
+    io.to(activeUsers[caller]?.socketId).emit('callAccepted', {
       acceptor: socket.userId
     });
   });
@@ -297,12 +287,16 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
 
-    // (선택) JWT 토큰 발급
-    // const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // JWT 토큰 발급 (user.id 포함)
+    const token = jwt.sign(
+      { id: user.id, username: user.username, nickname: user.nickname },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     return res.status(200).json({
       message: '로그인 성공',
-      // token, // 필요시 토큰 반환
+      token, // 토큰 반환
       user: {
         id: user.id,
         username: user.username,
@@ -313,6 +307,16 @@ app.post('/login', async (req, res) => {
     console.error('로그인 오류:', err);
     return res.status(500).json({ error: '서버 오류' });
   }
+});
+
+// 통화 종료 로그 API
+app.post('/call-end-log', (req, res) => {
+  const { myUserId, partnerUserId } = req.body;
+  if (!myUserId || !partnerUserId) {
+    return res.status(400).json({ error: 'user id가 필요합니다.' });
+  }
+  console.log(`[영상통화 종료] 내 user id: ${myUserId}, 상대방 user id: ${partnerUserId}`);
+  return res.status(200).json({ message: '로그 기록 완료' });
 });
 
 const PORT = process.env.PORT || 5000;

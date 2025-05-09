@@ -18,6 +18,7 @@ import '../../services/clova_speech_service.dart';
 import 'dart:io';
 import 'package:capstone_porj/services/openai_service.dart';
 import 'package:capstone_porj/services/analysis_storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -209,7 +210,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       // 매칭 시도 - 성공할 때까지 대기
       final response = await _requestMatchingUntilFound();
       if (response != null && response['matchedUserId'] != null) {
-        final targetId = response['matchedUserId'];
+        final targetId = response['matchedUserId'].toString();
         print('매칭된 사용자: $targetId');
 
         setState(() {
@@ -236,15 +237,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   Future<Map<String, dynamic>?> _requestMatchingUntilFound() async {
     while (true) {
       try {
-        // 1) 매칭 시도
-        final socketId = _signalingService.socket?.id;
-        if (socketId == null) {
-          throw Exception('소켓이 연결되지 않았습니다.');
+        final prefs = await SharedPreferences.getInstance();
+        final userId = prefs.getInt('userId');
+        if (userId == null) {
+          throw Exception('userId가 없습니다.');
         }
-
-        // 2) 실제 매칭 요청
         final response = await http
-            .get(Uri.parse(AppConfig.getMatchingUrl(socketId)))
+            .get(Uri.parse(AppConfig.getMatchingUrl(userId)))
             .timeout(const Duration(seconds: 10));
 
         // 3) 매칭 성공
@@ -356,6 +355,26 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           _remoteUserId ?? '상대방', // 상대방 이름/ID
         );
       }
+    }
+
+    // 통화 종료 로그 서버 전송
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final myUserId = prefs.getInt('userId'); // 로그인 시 저장된 내 user id
+      final partnerUserId =
+          _remoteUserId; // 상대방 user id (소켓 id가 아니라 user id여야 함)
+      if (myUserId != null && partnerUserId != null) {
+        await http.post(
+          Uri.parse('${AppConfig.serverUrl}/call-end-log'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'myUserId': myUserId,
+            'partnerUserId': partnerUserId,
+          }),
+        );
+      }
+    } catch (e) {
+      print('통화 종료 로그 전송 실패: $e');
     }
 
     // 2. 로딩 다이얼로그 닫기
