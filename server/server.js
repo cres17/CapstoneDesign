@@ -242,6 +242,29 @@ io.on('connection', (socket) => {
       waitingUsers = waitingUsers.filter(id => id !== socket.userId);
     }
   });
+
+  // 채팅방 입장
+  socket.on('joinRoom', (roomId) => {
+    socket.join(`room_${roomId}`);
+  });
+
+  // 메시지 전송
+  socket.on('sendMessage', async (data) => {
+    // data: { roomId, senderId, message }
+    const { roomId, senderId, message } = data;
+    // DB 저장
+    await db.query(
+      `INSERT INTO chat_messages (room_id, sender_id, message) VALUES (?, ?, ?)`,
+      [roomId, senderId, message]
+    );
+    // 실시간 전파
+    io.to(`room_${roomId}`).emit('receiveMessage', {
+      roomId,
+      senderId,
+      message,
+      created_at: new Date().toISOString(),
+    });
+  });
 });
 
 // 회원가입(텍스트 정보만)
@@ -414,6 +437,17 @@ app.post('/call-partner/step', async (req, res) => {
             `UPDATE call_partners SET step = 3 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
             [userId, partnerId, partnerId, userId]
           );
+          // ★★★ chat_rooms 생성 (이미 있으면 생성 안함)
+          const [exist] = await db.query(
+            `SELECT id FROM chat_rooms WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)`,
+            [userId, partnerId, partnerId, userId]
+          );
+          if (exist.length === 0) {
+            await db.query(
+              `INSERT INTO chat_rooms (user1_id, user2_id) VALUES (?, ?)`,
+              [userId, partnerId]
+            );
+          }
           return res.json({ success: true, step: 3 });
         } else {
           return res.json({ success: true, step: 2 });
@@ -476,6 +510,44 @@ app.get('/user-profile/:id', async (req, res) => {
   } catch (err) {
     console.error('프로필 이미지 반환 오류:', err);
     return res.status(500).send('서버 오류');
+  }
+});
+
+// 내 채팅방 목록 조회 API
+app.get('/chat-rooms/:userId', async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (!userId) return res.status(400).json({ error: 'userId 필요' });
+  try {
+    const [rows] = await db.query(
+      `SELECT id, user1_id, user2_id, created_at
+       FROM chat_rooms
+       WHERE user1_id = ? OR user2_id = ?
+       ORDER BY created_at DESC`,
+      [userId, userId]
+    );
+    res.json({ rooms: rows });
+  } catch (err) {
+    console.error('채팅방 목록 오류:', err);
+    res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 채팅방 메시지 목록 조회
+app.get('/chat-messages/:roomId', async (req, res) => {
+  const roomId = parseInt(req.params.roomId, 10);
+  if (!roomId) return res.status(400).json({ error: 'roomId 필요' });
+  try {
+    const [rows] = await db.query(
+      `SELECT id, sender_id, message, created_at
+       FROM chat_messages
+       WHERE room_id = ?
+       ORDER BY created_at ASC`,
+      [roomId]
+    );
+    res.json({ messages: rows });
+  } catch (err) {
+    console.error('채팅 메시지 목록 오류:', err);
+    res.status(500).json({ error: '서버 오류' });
   }
 });
 
