@@ -357,26 +357,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
     }
 
-    // 통화 종료 로그 서버 전송
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final myUserId = prefs.getInt('userId'); // 로그인 시 저장된 내 user id
-      final partnerUserId =
-          _remoteUserId; // 상대방 user id (소켓 id가 아니라 user id여야 함)
-      if (myUserId != null && partnerUserId != null) {
-        await http.post(
-          Uri.parse('${AppConfig.serverUrl}/call-end-log'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'myUserId': myUserId,
-            'partnerUserId': partnerUserId,
-          }),
-        );
-      }
-    } catch (e) {
-      print('통화 종료 로그 전송 실패: $e');
-    }
-
     // 2. 로딩 다이얼로그 닫기
     if (mounted) {
       Navigator.of(context, rootNavigator: true).pop();
