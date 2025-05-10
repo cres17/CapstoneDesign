@@ -151,9 +151,38 @@ io.on('connection', (socket) => {
   });
   
   // 통화 종료
-  socket.on('endCall', (data) => {
+  socket.on('endCall', async (data) => {
     const { target } = data;
-    
+    const myUserId = socket.userId;
+    const partnerUserId = target;
+
+    console.log(`[endCall] from ${myUserId} to ${partnerUserId} at ${new Date().toISOString()}`);
+
+    if (!myUserId || !partnerUserId) return;
+
+    try {
+      // 최근 3초 이내에 저장된 내역이 있으면 무시
+      const [rows] = await db.query(
+        `SELECT id FROM call_partners
+         WHERE user_id = ? AND partner_id = ? AND updated_at > DATE_SUB(NOW(), INTERVAL 3 SECOND)`,
+        [myUserId, partnerUserId]
+      );
+      if (rows.length === 0) {
+        await db.query(
+          `INSERT INTO call_partners (user_id, partner_id, count)
+           VALUES (?, ?, 1)
+           ON DUPLICATE KEY UPDATE count = count + 1, updated_at = NOW()`,
+          [myUserId, partnerUserId]
+        );
+        console.log(`통화내역 저장: ${myUserId} <-> ${partnerUserId}`);
+      } else {
+        console.log(`중복 저장 방지: ${myUserId} <-> ${partnerUserId}`);
+      }
+    } catch (err) {
+      console.error('통화내역 저장 오류:', err);
+    }
+
+    // 통화 종료 알림
     if (activeUsers[target]?.socketId) {
       io.to(activeUsers[target]?.socketId).emit('callEnded', {
         caller: socket.userId
@@ -249,18 +278,24 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-// 프로필 이미지 업로드 API (닉네임 기반)
+// 프로필 이미지 업로드 API (id 기반으로 저장)
 app.post('/upload-profile-image', upload.single('profile_image'), async (req, res) => {
-  const { nickname } = req.body;
-  if (!nickname || !req.file) {
-    return res.status(400).json({ error: '닉네임과 이미지가 필요합니다.' });
+  const { userId } = req.body;
+  if (!userId || !req.file) {
+    return res.status(400).json({ error: '유저ID와 이미지가 필요합니다.' });
   }
-  const profileImagePath = path.join('assets/profile', `${nickname}.png`);
+  const profileImagePath = `assets/profile/${userId}.png`;
   try {
+    // 파일명 변경
+    const fs = require('fs');
+    const oldPath = req.file.path;
+    const newPath = path.join(__dirname, '..', profileImagePath);
+    fs.renameSync(oldPath, newPath);
+
     // DB에 이미지 경로 업데이트
     await db.query(
-      'UPDATE users SET profile_image = ? WHERE nickname = ?',
-      [profileImagePath, nickname]
+      'UPDATE users SET profile_image = ? WHERE id = ?',
+      [profileImagePath, userId]
     );
     return res.status(200).json({ message: '이미지 업로드 성공', profile_image: profileImagePath });
   } catch (err) {
@@ -317,6 +352,131 @@ app.post('/call-end-log', (req, res) => {
   }
   console.log(`[영상통화 종료] 내 user id: ${myUserId}, 상대방 user id: ${partnerUserId}`);
   return res.status(200).json({ message: '로그 기록 완료' });
+});
+
+// 내 통화내역 조회 API
+app.get('/call-history/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId가 필요합니다.' });
+  }
+  try {
+    // partner_agree를 상대방의 my_agree로 반환
+    const [rows] = await db.query(
+      `SELECT 
+         partner_id, 
+         SUM(count) as count, 
+         MAX(updated_at) as updated_at, 
+         MAX(step) as step, 
+         MAX(my_agree) as my_agree,
+         (SELECT MAX(my_agree) FROM call_partners WHERE user_id = partner_id AND partner_id = ?) as partner_agree
+       FROM call_partners
+       WHERE user_id = ?
+       GROUP BY partner_id
+       ORDER BY updated_at DESC`,
+      [userId, userId]
+    );
+    return res.status(200).json({ partners: rows });
+  } catch (err) {
+    console.error('통화내역 조회 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 단계 변경 및 동의/거절 처리 API
+app.post('/call-partner/step', async (req, res) => {
+  const { userId, partnerId, agree, nextStep } = req.body;
+  if (!userId || !partnerId || typeof agree !== 'boolean') {
+    return res.status(400).json({ error: '필수 값 누락' });
+  }
+  try {
+    if (agree) {
+      // 2단계(사진 공개) → 3단계(데이트)로 진행 요청
+      if (nextStep === 3) {
+        // 내 row의 my_agree, 상대방 row의 partner_agree 모두 2로 변경 (데이트 동의)
+        await db.query(
+          `UPDATE call_partners SET my_agree = 2 WHERE user_id = ? AND partner_id = ?`,
+          [userId, partnerId]
+        );
+        await db.query(
+          `UPDATE call_partners SET partner_agree = 2 WHERE user_id = ? AND partner_id = ?`,
+          [partnerId, userId]
+        );
+        // 둘 다 2면 step=3
+        const [rows] = await db.query(
+          `SELECT my_agree, partner_agree FROM call_partners WHERE user_id = ? AND partner_id = ?`,
+          [userId, partnerId]
+        );
+        const myAgree = rows[0]?.my_agree || 0;
+        const partnerAgree = rows[0]?.partner_agree || 0;
+        if (myAgree === 2 && partnerAgree === 2) {
+          await db.query(
+            `UPDATE call_partners SET step = 3 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
+            [userId, partnerId, partnerId, userId]
+          );
+          return res.json({ success: true, step: 3 });
+        } else {
+          return res.json({ success: true, step: 2 });
+        }
+      }
+      // 기존 2단계(사진 공개) 동의 로직은 그대로
+      // 내 row의 my_agree, 상대방 row의 partner_agree 모두 1로 변경
+      await db.query(
+        `UPDATE call_partners SET my_agree = 1 WHERE user_id = ? AND partner_id = ?`,
+        [userId, partnerId]
+      );
+      await db.query(
+        `UPDATE call_partners SET partner_agree = 1 WHERE user_id = ? AND partner_id = ?`,
+        [partnerId, userId]
+      );
+      // 동의 상태 확인
+      const [rows] = await db.query(
+        `SELECT my_agree, partner_agree FROM call_partners WHERE user_id = ? AND partner_id = ?`,
+        [userId, partnerId]
+      );
+      const myAgree = rows[0]?.my_agree || 0;
+      const partnerAgree = rows[0]?.partner_agree || 0;
+      // 둘 다 동의하면 step=2로 변경
+      if (myAgree && partnerAgree) {
+        await db.query(
+          `UPDATE call_partners SET step = 2 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
+          [userId, partnerId, partnerId, userId]
+        );
+        return res.json({ success: true, step: 2 });
+      } else {
+        return res.json({ success: true, step: 1 });
+      }
+    } else {
+      // 거절: call_partners에서 서로 삭제
+      await db.query(
+        `DELETE FROM call_partners WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
+        [userId, partnerId, partnerId, userId]
+      );
+      return res.json({ success: true, deleted: true });
+    }
+  } catch (err) {
+    console.error('단계 변경 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 프로필 이미지 반환 API (id 기반)
+app.get('/user-profile/:id', async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const [rows] = await db.query('SELECT profile_image FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0 || !rows[0].profile_image) {
+      return res.status(404).send('이미지 없음');
+    }
+    // 경로 구분자 통일
+    const imagePath = rows[0].profile_image.replace(/\\/g, '/');
+    // 절대 경로로 변환
+    const absPath = path.join(__dirname, '..', imagePath);
+    return res.sendFile(absPath);
+  } catch (err) {
+    console.error('프로필 이미지 반환 오류:', err);
+    return res.status(500).send('서버 오류');
+  }
 });
 
 const PORT = process.env.PORT || 5000;
