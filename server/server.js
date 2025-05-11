@@ -45,8 +45,8 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     // 닉네임으로 파일명 지정, 확장자는 png로 고정
-    const nickname = req.body.nickname || 'profile';
-    cb(null, `${nickname}.png`);
+    const userId = req.body.userId;
+    cb(null, `${userId}.png`);
   }
 });
 const upload = multer({ storage: storage });
@@ -54,16 +54,19 @@ const upload = multer({ storage: storage });
 // 매칭 API 엔드포인트
 app.get('/match', (req, res) => {
   const userId = req.query.userId;
-  // userId는 반드시 숫자(문자열로 올 수 있으니 Number로 변환)
   if (!userId) {
     return res.status(400).json({ error: '사용자 ID가 필요합니다' });
   }
   // 자기 자신을 제외한 활성 사용자 중에서 매칭
   const availableUsers = Object.keys(activeUsers).filter(id => id !== userId);
   if (availableUsers.length === 0) {
-    // 매칭 가능한 사용자가 없음
-    waitingUsers.push(userId); // 대기 목록에 추가
-    console.log(`대기 목록에 추가: ${userId}, 현재 대기 목록: ${waitingUsers.join(', ')}`);
+    // ★★★ 이미 대기목록에 없을 때만 추가
+    if (!waitingUsers.includes(userId)) {
+      waitingUsers.push(userId);
+      console.log(`대기 목록에 추가: ${userId}, 현재 대기 목록: ${waitingUsers.join(', ')}`);
+    } else {
+      console.log(`이미 대기 목록에 있음: ${userId}, 현재 대기 목록: ${waitingUsers.join(', ')}`);
+    }
     return res.status(404).json({ error: '현재 매칭 가능한 사용자가 없습니다' });
   }
   // 무작위로 사용자 선택
@@ -232,14 +235,18 @@ io.on('connection', (socket) => {
     });
   });
   
-  // 연결 해제
+  // 소켓 이벤트 등록
+  socket.on('leaveWaiting', (data) => {
+    const userId = data.userId;
+    waitingUsers = waitingUsers.filter(id => id !== userId);
+    console.log('대기 목록에서 제거:', userId, waitingUsers);
+  });
+
+  // 소켓 연결 해제 시에도 자동으로 제거
   socket.on('disconnect', () => {
     if (socket.userId) {
-      console.log('사용자 연결 해제:', socket.userId);
-      delete activeUsers[socket.userId];
-      
-      // 대기 목록에서도 제거
       waitingUsers = waitingUsers.filter(id => id !== socket.userId);
+      console.log('연결 해제, 대기 목록에서 제거:', socket.userId, waitingUsers);
     }
   });
 
@@ -269,7 +276,7 @@ io.on('connection', (socket) => {
 
 // 회원가입(텍스트 정보만)
 app.post('/signup', async (req, res) => {
-  const { username, password, nickname, interests, gender } = req.body;
+  const { username, password, nickname, interests, gender, latitude, longitude } = req.body;
   if (!username || !password || !nickname || !gender) {
     return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
   }
@@ -290,8 +297,8 @@ app.post('/signup', async (req, res) => {
 
     // 회원가입
     await db.query(
-      'INSERT INTO users (username, password_hash, nickname, interests, gender) VALUES (?, ?, ?, ?, ?)',
-      [username, password_hash, nickname, interests || null, gender]
+      'INSERT INTO users (username, password_hash, nickname, interests, gender, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [username, password_hash, nickname, interests || null, gender, latitude, longitude]
     );
 
     return res.status(201).json({ message: '회원가입 성공' });
@@ -303,19 +310,30 @@ app.post('/signup', async (req, res) => {
 
 // 프로필 이미지 업로드 API (id 기반으로 저장)
 app.post('/upload-profile-image', upload.single('profile_image'), async (req, res) => {
-  const { userId } = req.body;
-  if (!userId || !req.file) {
-    return res.status(400).json({ error: '유저ID와 이미지가 필요합니다.' });
-  }
-  const profileImagePath = `assets/profile/${userId}.png`;
   try {
-    // 파일명 변경
+    // 1. 닉네임으로 먼저 저장
+    const nickname = req.body.nickname;
+    if (!req.file) {
+      return res.status(400).json({ error: '이미지 파일이 없습니다.' });
+    }
     const fs = require('fs');
+    const path = require('path');
     const oldPath = req.file.path;
-    const newPath = path.join(__dirname, '..', profileImagePath);
+
+    // 2. DB에서 id(PK) 조회
+    const [rows] = await db.query('SELECT id FROM users WHERE nickname = ?', [nickname]);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: '유저를 찾을 수 없습니다.' });
+    }
+    const userId = rows[0].id;
+
+    // 3. id.png로 파일명 변경
+    const newPath = path.join(req.file.destination, `${userId}.png`);
     fs.renameSync(oldPath, newPath);
 
-    // DB에 이미지 경로 업데이트
+    const profileImagePath = `assets/profile/${userId}.png`;
+
+    // 4. DB에 이미지 경로 업데이트 (id 기준)
     await db.query(
       'UPDATE users SET profile_image = ? WHERE id = ?',
       [profileImagePath, userId]
@@ -548,6 +566,34 @@ app.get('/chat-messages/:roomId', async (req, res) => {
   } catch (err) {
     console.error('채팅 메시지 목록 오류:', err);
     res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 3단계(데이트)까지 간 상대방 목록 + 위치 반환 API
+app.get('/date-partners/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId가 필요합니다.' });
+  }
+  try {
+    console.log('데이트 파트너 조회 요청 userId:', userId);
+    const [rows] = await db.query(
+      `SELECT 
+         cp.partner_id, 
+         u.nickname, 
+         u.profile_image, 
+         u.latitude, 
+         u.longitude
+       FROM call_partners cp
+       JOIN users u ON cp.partner_id = u.id
+       WHERE cp.user_id = ? AND cp.step = 3`,
+      [userId]
+    );
+    console.log('쿼리 결과 rows:', rows);
+    return res.status(200).json({ partners: rows });
+  } catch (err) {
+    console.error('데이트 파트너 조회 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
   }
 });
 
