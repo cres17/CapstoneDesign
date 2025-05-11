@@ -5,84 +5,89 @@
 [![ML Kit](https://img.shields.io/badge/ML%20Kit-FF6F00?style=for-the-badge&logo=google&logoColor=white)](https://developers.google.com/ml-kit)
 [![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com/)
 
-**다온**은 Flutter를 기반으로 개발된 소개팅 어플리케이션입니다. 영상 통화 중 얼굴을 가리는 기능, AI를 활용한 대화 분석 및 소개팅 성사 예측 기능을 제공하여 사용자에게 새롭고 흥미로운 경험을 선사합니다.
+**다온**은 Flutter 기반의 AI 소개팅 어플리케이션입니다.  
+실시간 영상통화, 얼굴 마스킹, AI 대화 분석, 소개팅 성사 예측, **실시간 채팅**, **데이트장소 추천** 등 다양한 기능을 제공합니다.
 
-## ✨ 주요 기능
+---
 
-1.  **얼굴 가리기 영상 통화**:
-    *   WebRTC를 이용한 실시간 영상 통화 기능을 제공합니다.
-    *   Google ML Kit의 Face Detection 기술을 활용하여 통화 중 상대방의 얼굴을 실시간으로 감지하고, 선택된 마스크 이미지로 가려줍니다. (프라이버시 보호 및 재미 요소)
+## ✨ 주요 기능 및 사용 기술
 
-2.  **AI 대화 분석 (STT & GPT)**:
-    *   영상 통화 중 나누는 대화를 STT(Speech-to-Text) 기술을 통해 텍스트로 변환합니다.
-    *   변환된 대화 스크립트를 OpenAI의 GPT 모델 API로 전송하여 대화 내용을 분석하고 요약합니다.
+### 1. 실시간 영상통화 & 얼굴 마스킹
+- **WebRTC**(`flutter_webrtc`)로 실시간 영상통화 구현
+- **Google ML Kit Face Detection**으로 영상 프레임에서 얼굴 실시간 감지
+- **CustomPaint**와 **dart:ui**로 얼굴 위치에 마스크 이미지 오버레이
+- **RepaintBoundary**로 프레임 캡처, **path_provider**로 임시 파일 저장
 
-3.  **소개팅 성사 예측**:
-    *   분석된 대화 내용과 기타 요소를 기반으로, 자체적으로 학습시킨 예측 모델을 사용하여 소개팅의 성사 가능성을 예측합니다. (예: "나는 솔로" 데이터 학습)
+### 2. AI 기반 대화 분석
+- 통화 중 음성 녹음 → **네이버 클로바 Speech API**로 STT(음성→텍스트)
+- 변환된 텍스트를 **OpenAI GPT API**로 전송, 대화 요약/감정/분위기 분석
 
-4.  **기타 기능**:
-    *   회원 가입 및 로그인
-    *   사용자 간 매칭 (현재 랜덤 매칭)
-    *   대화 분석 및 예측 결과 조회 (카드 형식 UI)
-    *   데이트 장소 추천 (구현 예정)
-    *   채팅 기능 (구현 예정)
-    *   설정 (프로필 수정, 로그아웃, 회원 탈퇴 등)
+### 3. 소개팅 성사 예측
+- 대화 분석 결과와 메타데이터(길이, 감정 등)를 자체 **머신러닝 예측 모델**에 입력
+- 예측 결과(성사 확률, 주요 근거 등)를 카드 UI로 시각화
 
-## 🛠️ 기술 스택
+### 4. 실시간 채팅 기능
+- **Socket.IO** 기반의 1:1 채팅 및 채팅방 목록
+- 메시지 실시간 송수신, 채팅방 입장/퇴장, 채팅 UI 제공
 
-*   **Frontend**: Flutter
-*   **Real-time Communication**: Flutter WebRTC, Socket.IO (시그널링 서버 연동 필요)
-*   **Face Detection**: Google ML Kit Face Detection
-*   **AI (Text Generation)**: OpenAI API (GPT)
-*   **AI (Prediction)**: 자체 학습 모델 (서버 연동 필요)
-*   **State Management**: Provider (또는 다른 상태 관리 라이브러리)
-*   **HTTP Client**: http
-*   **Permissions**: permission_handler
-*   **Local Storage**: shared_preferences
-*   **Image Handling**: image_picker, cached_network_image, image
-*   **Temporary File System**: path_provider
+### 5. 데이트장소 추천
+- 사용자의 위치와 상대방 닉네임을 기반으로, 두 사람의 위치를 고려한 데이트 장소 추천
+- **지도 API**(한국 관광공사 맛집 API)와 연동, 카드형 UI로 추천 장소 제공
 
-## 🎭 얼굴 마스킹 구현 상세
+### 6. 기타 기능
+- **회원가입/로그인**: 사용자 정보 입력 및 인증
+- **랜덤 매칭**: 서버에 접속한 사용자 중 무작위 연결
+- **대화 분석/예측 결과 조회**: 카드형 UI, 상세 모달
+- **설정**: 프로필 수정, 로그아웃, 회원탈퇴 등
 
-얼굴 마스킹 기능은 다음과 같은 단계로 구현되었습니다.
+---
 
-1.  **WebRTC 스트림 렌더링**: `flutter_webrtc`의 `RTCVideoRenderer`를 사용하여 상대방의 비디오 스트림을 화면에 표시합니다.
-2.  **프레임 캡처**: `RTCVideoRenderer`를 `RepaintBoundary` 위젯으로 감싸고, 주기적으로 `toImage()` 메서드를 호출하여 현재 렌더링된 프레임을 `ui.Image` 객체로 캡처합니다.
-3.  **이미지 처리**: 캡처된 `ui.Image`를 `ByteData`로 변환하고, `path_provider`를 사용하여 임시 파일(PNG)로 저장합니다.
-4.  **얼굴 감지**: `google_mlkit_face_detection` 라이브러리를 사용하여 임시 파일로부터 `InputImage`를 생성하고, `FaceDetector.processImage()`를 호출하여 이미지 내 얼굴의 위치(`boundingBox`)를 감지합니다.
-5.  **마스크 로딩 및 오버레이**:
-    *   `FaceMaskOverlay` 위젯에서 `maskAssetPath`에 지정된 마스크 이미지를 `rootBundle.load`를 통해 `ui.Image`로 로드합니다.
-    *   `CustomPaint` 위젯과 `_FaceMaskPainter`를 사용하여 캡처된 원본 프레임(`ui.Image`) 위에, 감지된 얼굴의 `boundingBox` 좌표에 맞춰 마스크 이미지(`ui.Image`)를 덧그립니다. 좌표 변환 로직을 포함하여 정확한 위치에 마스크가 표시되도록 합니다.
+## 🛠️ 사용한 주요 알고리즘 및 API
+
+- **얼굴 인식**: Google ML Kit Face Detection (bounding box 추출)
+- **음성 인식(STT)**: 네이버 클로바 Speech API
+- **대화 분석/요약**: OpenAI GPT API (텍스트 요약, 감정 분석)
+- **성사 예측**: 자체 머신러닝 모델 (분류/회귀, scikit-learn, TensorFlow 등 활용 가능)
+- **실시간 통신**: WebRTC (flutter_webrtc), Socket.IO (시그널링 서버)
+- **지도/장소 추천**: 한국 관광공사 맛집 API 등
+- **상태 관리**: Provider
+- **이미지 처리**: image, image_picker, cached_network_image 등
+
+---
 
 ## 📱 화면 구성
 
-*   **시작 페이지**: 앱 소개 및 로그인/회원가입 버튼
-*   **회원가입 페이지**: 사용자 정보 입력 (아이디, 비밀번호, 성별, 주소, 닉네임, 프로필 사진)
-*   **로그인 페이지**: 아이디, 비밀번호 입력
-*   **메인 페이지**: 하단 네비게이션 바 (메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 네비게이션 바 (대화 분석, 예측 결과)
-*   **영상통화 페이지**: 얼굴 가리기 기능이 적용된 영상 통화 화면
-*   **대화분석 페이지**: 통화별 대화 분석 결과 목록 (카드 UI), 상세 보기 (모달)
-*   **예측 페이지**: 통화별 소개팅 성사 예측 결과 목록 (카드 UI), 상세 보기 (모달)
-*   **데이트 장소 추천 페이지**: (구현 예정)
-*   **채팅방 페이지**: (구현 예정)
-*   **설정 페이지**: 주소 수정, 로그아웃, 회원 탈퇴
+- **시작 페이지**: 앱 소개, 로그인/회원가입 버튼
+- **회원가입 페이지**: 아이디, 비밀번호, 성별, 주소, 닉네임, 프로필 사진 입력
+- **로그인 페이지**: 아이디, 비밀번호 입력
+- **메인 페이지**: 하단 네비게이션(메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 네비게이션(대화 분석, 예측 결과)
+- **영상통화 페이지**: 얼굴 마스킹 적용된 영상통화
+- **대화분석 페이지**: 통화별 분석 결과 카드, 상세 모달
+- **예측 페이지**: 통화별 성사 예측 결과 카드, 상세 모달
+- **데이트 장소 추천 페이지**: 두 사람의 위치 기반 추천 장소 카드 UI
+- **채팅방 페이지**: 1:1 채팅, 채팅방 목록, 실시간 메시지
+- **설정 페이지**: 주소 수정, 로그아웃, 회원탈퇴
+
+---
 
 ## 🚀 시작하기
 
-1.  **저장소 클론**:
+1. **저장소 클론**
     ```bash
     git clone https://your-repository-url/daon.git
     cd daon
     ```
-2.  **필요한 라이브러리 설치**:
+2. **필요한 라이브러리 설치**
     ```bash
     flutter pub add flutter_webrtc socket_io_client permission_handler path_provider google_mlkit_face_detection image http shared_preferences provider image_picker cached_network_image flutter_svg intl cupertino_icons flutter_lints
     ```
-    *(참고: `pubspec.yaml`에 직접 추가하는 대신 터미널 명령어를 사용합니다.)*
-3.  **Flutter 앱 실행**:
+    *(pubspec.yaml에 직접 추가하지 않고 터미널 명령어로 설치)*
+3. **Flutter 앱 실행**
     ```bash
     flutter run
     ```
+
+---
 
 ## 🤝 기여하기
 
