@@ -10,8 +10,10 @@ class AuthService {
     String password,
     String nickname,
     String interests,
-    String gender,
-  ) async {
+    String gender, {
+    double? latitude,
+    double? longitude,
+  }) async {
     final url = Uri.parse('${AppConfig.serverUrl}/signup');
     final response = await http.post(
       url,
@@ -22,6 +24,8 @@ class AuthService {
         'nickname': nickname,
         'interests': interests,
         'gender': gender,
+        'latitude': latitude,
+        'longitude': longitude,
       }),
     );
     if (response.statusCode == 201) {
@@ -70,7 +74,7 @@ class AuthService {
       final user = data['user'];
       if (user != null && user['id'] != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('userId', user['id']);
+        await prefs.setInt('user_id', user['id']);
       }
       // 토큰도 필요하면 저장
       if (data['token'] != null) {

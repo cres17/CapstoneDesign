@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 
 // 관심사 리스트
 final List<String> interestList = [
@@ -53,6 +54,27 @@ class _SignupScreenState extends State<SignupScreen> {
   // 관심사 선택 상태 저장
   List<bool> _selectedInterests = List.generate(20, (index) => false);
 
+  // 위치 권한 요청 및 현재 위치 가져오기 함수
+  Future<Position?> _getCurrentPosition() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return null;
+    }
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return null;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    return await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+  }
+
   // 회원가입 처리 함수
   Future<void> _handleSignup() async {
     // 관심사 선택값 추출
@@ -64,18 +86,33 @@ class _SignupScreenState extends State<SignupScreen> {
     }
     String interestsString = selectedIndexes.join(',');
 
+    // 위치 정보 가져오기
+    final position = await _getCurrentPosition();
+    if (position == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('위치 권한이 필요합니다. 설정에서 허용해주세요.')),
+        );
+      }
+      return;
+    }
+    final latitude = position.latitude;
+    final longitude = position.longitude;
+
     final error = await AuthService.signup(
       _idController.text.trim(),
       _pwController.text.trim(),
       _nicknameController.text.trim(),
       interestsString,
       _selectedGender,
+      latitude: latitude,
+      longitude: longitude,
     );
     if (error == null) {
       // 회원가입 성공 시에만 이미지 업로드
       if (_profileImage != null) {
         final uploadError = await AuthService.uploadProfileImage(
-          _nicknameController.text.trim(),
+          _idController.text.trim(),
           _profileImage!,
         );
         if (uploadError != null) {
