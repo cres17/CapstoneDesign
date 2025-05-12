@@ -1,10 +1,9 @@
-import 'package:capstone_porj/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:capstone_porj/services/auth_service.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../main/main_screen.dart';
-import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -23,18 +22,30 @@ class _LoginScreenState extends State<LoginScreen> {
         _idController.text.trim(),
         _pwController.text.trim(),
       );
-      // 로그인 성공 시 메인페이지로 이동
+
+      // ✅ 로그인 성공 시 성별 추출
+      final userGender = result['gender']?.toString();
+
+      if (userGender != '남성' && userGender != '여성') {
+        throw Exception('잘못된 성별 정보입니다: $userGender');
+      }
+
+      // 예측 화면에서는 영어로 변환해서 넘기기
+      final modelGender = (userGender == '남성') ? 'male' : 'female';
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
+          MaterialPageRoute(
+            builder: (context) => MainScreen(userGender: modelGender!),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
       }
     }
   }
@@ -50,8 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 30),
-
-              // 앱 로고
               Center(
                 child: Container(
                   width: 80,
@@ -72,56 +81,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // 아이디 입력 필드
               CustomTextField(
                 controller: _idController,
                 hintText: '아이디',
                 prefixIcon: const Icon(Icons.person_outline),
               ),
-
               const SizedBox(height: 16),
-
-              // 비밀번호 입력 필드
               CustomTextField(
                 controller: _pwController,
                 hintText: '비밀번호',
                 obscureText: true,
                 prefixIcon: const Icon(Icons.lock_outline),
               ),
-
               const SizedBox(height: 40),
-
-              // 로그인 버튼
               CustomButton(text: '로그인', onPressed: _handleLogin),
-
               const SizedBox(height: 16),
-
-              // 소셜 로그인 버튼
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.facebook, color: Colors.blue),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 20),
-                  IconButton(
-                    icon: const Icon(Icons.android, color: Colors.green),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 20),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.phone_android,
-                      color: AppColors.primary,
-                    ),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
+              
             ],
           ),
         ),

@@ -38,7 +38,7 @@ class MatchingService {
       try {
         // AppConfig 사용
         final response = await http
-            .get(Uri.parse(AppConfig.getMatchingUrl(userId as int)))
+            .get(Uri.parse(AppConfig.getMatchingUrl(userId)))
             .timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {

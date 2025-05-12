@@ -62,29 +62,31 @@ class AuthService {
     }
   }
 
-  static Future<String?> login(String username, String password) async {
+  static Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse('${AppConfig.serverUrl}/login');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'username': username, 'password': password}),
     );
+
+    final data = jsonDecode(response.body);
+
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
       final user = data['user'];
       if (user != null && user['id'] != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', user['id']);
       }
-      // 토큰도 필요하면 저장
       if (data['token'] != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwtToken', data['token']);
       }
-      return null;
+
+      return user; // ✅ 사용자 정보 Map 반환
     } else {
-      final data = jsonDecode(response.body);
-      return data['error'] ?? '로그인 실패';
+      final error = data['error'] ?? '로그인 실패';
+      throw Exception(error); // ✅ 실패 시 예외 던지기
     }
   }
 }
