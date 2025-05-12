@@ -7,7 +7,16 @@ class OpenAIService {
   static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
 
   Future<String?> analyzeConversation(String conversation) async {
-    final prompt = "이 대화를 분석해줘\n$conversation";
+    final prompt = """
+아래 대화를 다음 세 가지 기준에 따라 분석해줘.
+
+1. 적절한 주제 탐색 (협력의 원리, 상호 호혜적 의사소통의 원리)
+2. 자아 노출의 적정성 유지 (거리유지의 원칙)
+3. 경청과 협력적 반응 (협력의 원리, 공손성의 원리)
+
+각 항목별로 대화에서 잘 드러난 부분과 아쉬운 부분을 구체적으로 설명해줘.
+$conversation
+""";
     final body = {
       "model": "gpt-4.1",
       "messages": [
