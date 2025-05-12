@@ -19,8 +19,8 @@ def load_model(run_name):
 
 # ✅ 남성/여성 모델 로드
 print("[MODEL_SERVER] 모델 다운로드 중...")
-model_male, tokenizer_male = load_model("kobigbird-male-regression-labeled")
-model_female, tokenizer_female = load_model("kobigbird-female-regression-labeled")
+model_male, tokenizer_male = load_model("kobigbird-male-mlp-pearson")
+model_female, tokenizer_female = load_model("kobigbird-female-mlp-pearson")
 print("[MODEL_SERVER] 남/여 모델 로딩 완료")
 
 # ✅ Flask 서버 초기화
