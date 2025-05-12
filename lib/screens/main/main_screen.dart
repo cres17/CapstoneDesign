@@ -8,6 +8,7 @@ import '../date_recommendation/date_recommendation_screen.dart';
 import '../chat/chat_screen.dart';
 import '../settings/settings_screen.dart';
 import 'package:capstone_porj/models/call_result_data.dart';
+import 'package:capstone_porj/screens/call_history_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -22,6 +23,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const MainHomePage(),
+    const CallHistoryScreen(),
     const DateRecommendationScreen(),
     const ChatScreen(),
     const SettingsScreen(),
@@ -95,6 +97,7 @@ class _MainScreenState extends State<MainScreen> {
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: '통화내역'),
           BottomNavigationBarItem(icon: Icon(Icons.place), label: '데이트 장소'),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline),

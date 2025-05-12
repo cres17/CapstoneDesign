@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignalingService {
   // 싱글톤 패턴
@@ -58,14 +59,16 @@ class SignalingService {
     );
 
     // 연결 이벤트 리스너 설정
-    socket?.on('connect', (_) {
+    socket?.on('connect', (_) async {
       print('[SignalingService] 소켓 서버에 연결됨. 소켓 ID: ${socket?.id}');
-      // 연결 성공 시 즉시 사용자 등록
-      if (socket?.id != null) {
-        print('[SignalingService] 사용자 등록 시도: ${socket!.id}');
-        socket?.emit('register', socket!.id); // socket!.id 사용
+      // 실제 user id로 등록
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('userId');
+      if (userId != null) {
+        print('[SignalingService] 사용자 등록 시도: $userId');
+        socket?.emit('register', userId.toString());
       } else {
-        print('[SignalingService] 오류: 소켓 ID가 없어 사용자 등록 불가');
+        print('[SignalingService] 오류: userId가 없어 사용자 등록 불가');
       }
     });
 
