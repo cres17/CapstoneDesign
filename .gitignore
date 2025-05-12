@@ -136,3 +136,6 @@ Thumbs.db
 coverage/
 dist/
 build/ 
+
+*.safetensors
+*.pt

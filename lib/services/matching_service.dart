@@ -27,6 +27,11 @@ class MatchingService {
         : AppConfig.serverUrl; // AppConfig 사용
   }
 
+  // Correct implementation of getMatchingUrl
+  static String getMatchingUrl(String userId) {
+    return 'http://your-server.com/matching/$userId'; // Correct return type
+  }
+
   // 매칭 요청에 재시도 로직 추가
   static Future<Map<String, dynamic>?> requestMatching(
     String userId, {

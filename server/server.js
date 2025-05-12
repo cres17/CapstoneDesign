@@ -599,6 +599,6 @@ app.get('/date-partners/:userId', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`서버가 포트 ${PORT}에서 0.0.0.0으로 실행 중입니다`);
-});
+server.listen(PORT, () => {
+  console.log(`서버가 포트 ${PORT}에서 실행 중입니다`);
+}); 

@@ -15,7 +15,7 @@ class AppConfig {
   }
 
   // 매칭 API URL 생성 헬퍼
-  static String getMatchingUrl(int userId) {
+  static String getMatchingUrl(String userId) {
     return "$serverUrl/match?userId=$userId";
   }
 }
