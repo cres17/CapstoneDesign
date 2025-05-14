@@ -95,16 +95,21 @@ io.on('connection', (socket) => {
   
   // 통화 요청
   socket.on('call', (data) => {
-    const { target, offer } = data;
-    console.log(`통화 요청: ${socket.userId} -> ${target}`);
+    const { caller, callee } = data;
+    if (!caller || !callee) {
+      console.log(`[call] 잘못된 요청: caller=${caller}, callee=${callee}, socket: ${socket.id}`);
+      return;
+    }
+    console.log(`[call] from: ${caller} to: ${callee}, socket: ${socket.id}`);
+    console.log(`통화 요청: ${socket.userId} -> ${callee}`);
     
-    if (activeUsers[target]?.socketId) {
-      io.to(activeUsers[target].socketId).emit('incomingCall', {
+    if (activeUsers[callee]?.socketId) {
+      io.to(activeUsers[callee].socketId).emit('incomingCall', {
         caller: socket.userId,
-        offer
+        offer: data.offer
       });
     } else {
-      console.log(`대상 사용자 없음: ${target}`);
+      console.log(`대상 사용자 없음: ${callee}`);
     }
   });
   
@@ -244,6 +249,7 @@ io.on('connection', (socket) => {
 
   // 소켓 연결 해제 시에도 자동으로 제거
   socket.on('disconnect', () => {
+    console.log(`[disconnect] socket: ${socket.id}`);
     if (socket.userId) {
       waitingUsers = waitingUsers.filter(id => id !== socket.userId);
       console.log('연결 해제, 대기 목록에서 제거:', socket.userId, waitingUsers);
@@ -271,6 +277,11 @@ io.on('connection', (socket) => {
       message,
       created_at: new Date().toISOString(),
     });
+  });
+
+  socket.on('answer', (data) => {
+    console.log(`[answer] from: ${data.callee} to: ${data.caller}, socket: ${socket.id}`);
+    // ... 기존 answer 처리 ...
   });
 });
 

@@ -108,8 +108,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _webrtcFaceDetection.dispose();
 
     // SignalingService의 자원 정리 및 연결 해제
-    _signalingService.endCall(); // 내부적으로 _cleanUp 호출하여 WebRTC 자원 정리
-    _signalingService.disconnect(); // 명시적으로 소켓 연결 해제
+    _signalingService.cleanUp();
+    _signalingService.disconnect();
 
     _recorderService.dispose();
 
@@ -126,59 +126,73 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _webrtcFaceDetection.attachRenderer(_remoteRenderer);
     // facesStream 구독
     _webrtcFaceDetection.facesStream.listen((faces) {
-      setState(() {
-        _detectedFaces = faces;
-      });
+      if (mounted) {
+        setState(() {
+          _detectedFaces = faces;
+        });
+      }
     });
   }
 
   // 시그널링 설정
   void _setupSignaling() {
     _signalingService.onLocalStream = (stream) {
-      setState(() {
-        _localRenderer.srcObject = stream;
-      });
+      if (mounted) {
+        setState(() {
+          _localRenderer.srcObject = stream;
+        });
+      }
     };
 
     _signalingService.onRemoteStream = (stream) {
-      setState(() {
-        _remoteRenderer.srcObject = stream;
-        _isInCall = true;
-        _isConnecting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _remoteRenderer.srcObject = stream;
+          _isInCall = true;
+          _isConnecting = false;
+        });
+      }
     };
 
     _signalingService.onConnectionStateChange = (state) {
       print('연결 상태 변경: $state');
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
           state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
-        setState(() {
-          _isInCall = false;
-          _isConnecting = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isInCall = false;
+            _isConnecting = false;
+          });
+        }
       }
     };
 
     _signalingService.onIncomingCall = (callerId) async {
-      setState(() {
-        _remoteUserId = callerId;
-      });
+      if (mounted) {
+        setState(() {
+          _remoteUserId = callerId;
+        });
+      }
 
       // 수신 알림 다이얼로그를 띄우는 대신, 자동으로 통화 수락
       try {
         print('수신 통화 자동 수락 시도: $callerId');
         await _signalingService.acceptCall(callerId);
-        setState(() {
-          _isInCall = true;
-          _isConnecting = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isInCall = true;
+            _isConnecting = false;
+          });
+        }
       } catch (e) {
         print('수신 통화 자동 수락 중 오류: $e');
-        setState(() {
-          _isConnecting = false;
-          _hasError = true;
-          _errorMessage = '수신 통화 자동 수락 오류: $e';
-        });
+        if (mounted) {
+          setState(() {
+            _isConnecting = false;
+            _hasError = true;
+            _errorMessage = '수신 통화 자동 수락 오류: $e';
+          });
+        }
       }
     };
   }
@@ -190,10 +204,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       bool hasPermission =
           await PermissionService.requestVideoCallPermissions();
       if (!hasPermission) {
-        setState(() {
-          _hasError = true;
-          _errorMessage = '카메라 및 마이크 권한이 필요합니다.';
-        });
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = '카메라 및 마이크 권한이 필요합니다.';
+          });
+        }
         return;
       }
 
@@ -203,9 +219,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       // 로컬 스트림 생성
       await _signalingService.createLocalStream();
 
-      setState(() {
-        _isConnecting = true; // 로딩 화면 표시
-      });
+      if (mounted) {
+        setState(() {
+          _isConnecting = true; // 로딩 화면 표시
+        });
+      }
 
       // 매칭 시도 - 성공할 때까지 대기
       final response = await _requestMatchingUntilFound();
@@ -216,7 +234,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         setState(() {
           _remoteUserId = targetId;
         });
-        await _signalingService.startCall(targetId);
+
+        // 내 userId 가져오기
+        final prefs = await SharedPreferences.getInstance();
+        final myUserId = prefs.getInt('user_id');
+        if (myUserId == null) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = '내 userId를 찾을 수 없습니다.';
+          });
+          return;
+        }
+
+        // userId가 더 작은 쪽만 startCall 호출
+        if (myUserId < int.parse(targetId)) {
+          await _signalingService.startCall(myUserId, int.parse(targetId));
+        }
+        // userId가 더 큰 쪽은 incomingCall을 기다림
 
         // 연결 후 로딩 해제
         setState(() {
@@ -225,11 +259,13 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       }
     } catch (e) {
       print('연결 오류: $e');
-      setState(() {
-        _isConnecting = false;
-        _hasError = true;
-        _errorMessage = '연결 중 오류가 발생했습니다: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _isConnecting = false;
+          _hasError = true;
+          _errorMessage = '연결 중 오류가 발생했습니다: $e';
+        });
+      }
     }
   }
 
@@ -274,36 +310,40 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   // 통화 종료 다이얼로그
   void _showCallEndDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('통화가 종료되었습니다'),
-            content: const Text('대화분석페이지와 예측페이지에 분석된 내용이 있습니다.'),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            actions: [
-              TextButton(
-                child: const Text('확인'),
-                onPressed: () {
-                  Navigator.pop(context); // 다이얼로그 닫기
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/main', (route) => false);
-                },
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('통화가 종료되었습니다'),
+              content: const Text('대화분석페이지와 예측페이지에 분석된 내용이 있습니다.'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
               ),
-            ],
-          ),
-    );
+              actions: [
+                TextButton(
+                  child: const Text('확인'),
+                  onPressed: () {
+                    Navigator.pop(context); // 다이얼로그 닫기
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/main', (route) => false);
+                  },
+                ),
+              ],
+            ),
+      );
+    }
   }
 
   // 마이크 토글
   void _toggleMic() {
     _signalingService.toggleMic();
-    setState(() {
-      _isMicMuted = !_isMicMuted;
-    });
+    if (mounted) {
+      setState(() {
+        _isMicMuted = !_isMicMuted;
+      });
+    }
   }
 
   // 카메라 전환
@@ -314,9 +354,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   // 통화 종료
   Future<void> _endCall({bool auto = false}) async {
     if (!_isInCall) return;
-    setState(() {
-      _isInCall = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isInCall = false;
+      });
+    }
 
     // 1. 항상 로딩 다이얼로그 띄우기 (auto와 무관)
     if (mounted) {
@@ -336,7 +378,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       );
     }
 
-    _signalingService.endCall();
+    await _signalingService.cleanUp();
+    _signalingService.disconnect(); // 소켓도 해제
 
     final filePath = await _recorderService.stopRecording();
     String? text;
@@ -392,23 +435,25 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   // 오류 다이얼로그
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('오류'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                child: const Text('확인'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('오류'),
+              content: Text(message),
+              actions: [
+                TextButton(
+                  child: const Text('확인'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+      );
+    }
   }
 
   void _checkConnectionState() {
@@ -807,10 +852,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              setState(() {
-                _hasError = false;
-                _errorMessage = '';
-              });
+              if (mounted) {
+                setState(() {
+                  _hasError = false;
+                  _errorMessage = '';
+                });
+              }
               _connectToServer(); // 다시 연결 시도
             },
             child: const Text('다시 시도'),

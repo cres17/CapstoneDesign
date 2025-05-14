@@ -176,7 +176,16 @@ class SignalingService {
   }
 
   // 통화 시작
-  Future<void> startCall(String targetId) async {
+  Future<void> startCall(int myUserId, int partnerUserId) async {
+    if (myUserId == null || partnerUserId == null) {
+      print('[SignalingService] 오류: caller 또는 callee가 null입니다.');
+      return;
+    }
+    // 이미 PeerConnection이 있으면 중복 offer 방지
+    if (peerConnection != null) {
+      print('[SignalingService] 이미 PeerConnection이 존재하여 중복 offer를 보내지 않습니다.');
+      return;
+    }
     try {
       // 피어 연결 생성
       peerConnection = await createPeerConnection(configuration);
@@ -204,7 +213,7 @@ class SignalingService {
       peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
         print('로컬 ICE 후보 생성됨');
         socket?.emit('ice-candidate', {
-          'target': targetId,
+          'target': partnerUserId,
           'candidate': candidate.toMap(),
         });
       };
@@ -222,9 +231,13 @@ class SignalingService {
       await peerConnection!.setLocalDescription(offer);
 
       // 대상에게 통화 요청 전송
-      socket?.emit('call', {'target': targetId, 'offer': offer.toMap()});
+      socket?.emit('call', {
+        'caller': myUserId,
+        'callee': partnerUserId,
+        'offer': offer.toMap(),
+      });
 
-      currentRoomId = targetId;
+      currentRoomId = partnerUserId.toString();
     } catch (e) {
       print('통화 시작 오류: $e');
       await _cleanUp();
@@ -236,6 +249,16 @@ class SignalingService {
   Future<void> answerCall(String callerId) async {
     try {
       print('통화 수락 시작: $callerId');
+
+      // 이미 answer를 했거나 연결된 상태면 중복 answer 방지
+      if (peerConnection != null &&
+          (peerConnection!.signalingState ==
+                  RTCSignalingState.RTCSignalingStateStable ||
+              peerConnection!.signalingState ==
+                  RTCSignalingState.RTCSignalingStateHaveLocalOffer)) {
+        print('[SignalingService] 이미 연결된 상태이므로 중복 answer를 하지 않습니다.');
+        return;
+      }
 
       // 1. PeerConnection 초기화 확인
       if (peerConnection == null) {
@@ -305,15 +328,29 @@ class SignalingService {
   }
 
   // 원격 설명 설정
-  Future<void> _setRemoteDescription(dynamic answer) async {
+  Future<void> _setRemoteDescription(Map<String, dynamic> desc) async {
+    print('[SignalingService] setRemoteDescription 호출: type=${desc['type']}');
+    print(
+      '[SignalingService] 현재 PeerConnection 상태: ${peerConnection?.signalingState}',
+    );
     try {
-      RTCSessionDescription description = RTCSessionDescription(
-        answer['sdp'],
-        answer['type'],
+      // remoteDescription getter가 없으므로 signalingState로 중복 방지
+      if (peerConnection != null &&
+          peerConnection!.signalingState ==
+              RTCSignalingState.RTCSignalingStateStable) {
+        print('[SignalingService] 이미 연결된 상태이므로 중복 offer/answer를 무시합니다.');
+        return;
+      }
+      await peerConnection?.setRemoteDescription(
+        RTCSessionDescription(desc['sdp'], desc['type']),
       );
-      await peerConnection?.setRemoteDescription(description);
+      print('[SignalingService] setRemoteDescription 성공');
+      print(
+        '[SignalingService] offer/answer 수신: type=${desc['type']}, signalingState=${peerConnection?.signalingState}',
+      );
     } catch (e) {
-      print('원격 설명 설정 오류: $e');
+      print('[SignalingService] setRemoteDescription 오류: $e');
+      rethrow;
     }
   }
 
@@ -455,5 +492,31 @@ class SignalingService {
       print('통화 수락 오류: $e');
       rethrow;
     }
+  }
+
+  // PeerConnection, 스트림 등 리소스 정리
+  Future<void> cleanUp() async {
+    print('[SignalingService] 리소스 정리 시작');
+    try {
+      await peerConnection?.close();
+      peerConnection = null;
+    } catch (e) {
+      print('[SignalingService] PeerConnection close 오류: $e');
+    }
+    try {
+      await localStream?.dispose();
+      localStream = null;
+    } catch (e) {
+      print('[SignalingService] localStream dispose 오류: $e');
+    }
+    try {
+      await remoteStream?.dispose();
+      remoteStream = null;
+    } catch (e) {
+      print('[SignalingService] remoteStream dispose 오류: $e');
+    }
+    currentRoomId = null;
+    pendingOffer = null;
+    print('[SignalingService] 리소스 정리 완료');
   }
 }
