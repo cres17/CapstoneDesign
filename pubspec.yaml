@@ -46,12 +46,6 @@ dependencies:
   socket_io_client: ^3.1.2
   permission_handler: ^12.0.0
   path_provider: ^2.1.5
-  google_mlkit_face_detection: ^0.13.1
-  image: ^4.5.4
-  flutter_sound: ^9.28.0
-  flutter_dotenv: ^5.2.1
-  geolocator: ^14.0.0
-  xml: ^6.5.0
 
 dev_dependencies:
   flutter_test:

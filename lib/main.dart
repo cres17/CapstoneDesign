@@ -22,7 +22,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
-      routes: {'/main': (context) => const MainScreen()},
+      routes: {
+        '/main': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final userGender = args['userGender'] as String;
+          return MainScreen(userGender: userGender);
+        },
+      },
     );
   }
 }
