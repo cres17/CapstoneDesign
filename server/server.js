@@ -398,6 +398,7 @@ app.post('/call-end-log', (req, res) => {
 // 내 통화내역 조회 API
 app.get('/call-history/:userId', async (req, res) => {
   const userId = req.params.userId;
+  console.log(`[통화내역] 요청 userId: ${userId}`);
   if (!userId) {
     return res.status(400).json({ error: 'userId가 필요합니다.' });
   }
@@ -534,6 +535,7 @@ app.get('/user-profile/:id', async (req, res) => {
 // 내 채팅방 목록 조회 API
 app.get('/chat-rooms/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
+  console.log(`[채팅방 목록] 요청 userId: ${userId}`);
   if (!userId) return res.status(400).json({ error: 'userId 필요' });
   try {
     const [rows] = await db.query(

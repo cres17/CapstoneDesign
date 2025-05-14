@@ -18,7 +18,7 @@ class OpenAIService {
 $conversation
 """;
     final body = {
-      "model": "gpt-4.1",
+      "model": "o4-mini",
       "messages": [
         {"role": "user", "content": prompt},
       ],

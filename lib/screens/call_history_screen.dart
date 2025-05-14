@@ -26,7 +26,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       _isLoading = true;
     });
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
+    final userId = prefs.getInt('user_id');
+    print(
+      '[CallHistoryScreen] SharedPreferences에서 user_id로 userId 읽음: $userId',
+    );
     if (userId == null) return;
     final url = Uri.parse('${AppConfig.serverUrl}/call-history/$userId');
     final res = await http.get(url);

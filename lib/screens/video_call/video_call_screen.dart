@@ -238,7 +238,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     while (true) {
       try {
         final prefs = await SharedPreferences.getInstance();
-        final userId = prefs.getInt('userId');
+        final userId = prefs.getInt('user_id');
+        print(
+          '[VideoCallScreen] SharedPreferences에서 user_id로 userId 읽음: $userId',
+        );
         if (userId == null) {
           throw Exception('userId가 없습니다.');
         }

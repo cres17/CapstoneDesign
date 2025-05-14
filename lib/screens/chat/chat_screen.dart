@@ -21,7 +21,14 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _printUserIdForDebug();
     _loadUserIdAndRooms();
+  }
+
+  Future<void> _printUserIdForDebug() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
+    print('[ChatScreen] SharedPreferences에서 user_id로 userId 읽음: $userId');
   }
 
   Future<void> _loadUserIdAndRooms() async {

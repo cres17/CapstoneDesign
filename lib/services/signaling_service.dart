@@ -61,9 +61,11 @@ class SignalingService {
     // 연결 이벤트 리스너 설정
     socket?.on('connect', (_) async {
       print('[SignalingService] 소켓 서버에 연결됨. 소켓 ID: ${socket?.id}');
-      // 실제 user id로 등록
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('userId');
+      final userId = prefs.getInt('user_id');
+      print(
+        '[SignalingService] SharedPreferences에서 user_id로 userId 읽음: $userId',
+      );
       if (userId != null) {
         print('[SignalingService] 사용자 등록 시도: $userId');
         socket?.emit('register', userId.toString());

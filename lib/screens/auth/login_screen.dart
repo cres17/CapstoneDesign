@@ -16,19 +16,29 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _pwController = TextEditingController();
+  String? _errorMessage;
 
   Future<void> _handleLogin() async {
     try {
-      final result = await AuthService.login(
+      final error = await AuthService.login(
         _idController.text.trim(),
         _pwController.text.trim(),
       );
-      // 로그인 성공 시 메인페이지로 이동
-      if (mounted) {
-        Navigator.pushReplacement(
+      if (error == null) {
+        // Provider 등 상태관리 갱신 필요시 여기에 추가
+        // 예: UserProvider.of(context, listen: false).setUserId(새로운 userId);
+
+        // 앱 스택을 모두 지우고 메인페이지로 이동 (새로고침 효과)
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
         );
+      } else {
+        // 에러 처리
+        setState(() {
+          _errorMessage = error;
+        });
       }
     } catch (e) {
       if (mounted) {
