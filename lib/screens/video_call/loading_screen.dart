@@ -106,8 +106,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     String partnerName,
   ) async {
     try {
-      // 유저 성별 정보는 예시로 'male'로 고정, 실제로는 SharedPreferences 등에서 불러와야 함
       final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('userId');
+
+      // 유저 성별 정보는 예시로 'male'로 고정, 실제로는 SharedPreferences 등에서 불러와야 함
       final gender = prefs.getString('gender') ?? 'male';
 
       final response = await http.post(

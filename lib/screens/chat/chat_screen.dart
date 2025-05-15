@@ -21,35 +21,34 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _printUserIdForDebug();
     _loadUserIdAndRooms();
-  }
-
-  Future<void> _printUserIdForDebug() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('user_id');
-    print('[ChatScreen] SharedPreferences에서 user_id로 userId 읽음: $userId');
   }
 
   Future<void> _loadUserIdAndRooms() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('userId');
-    if (userId == null) return;
+    print('userId: $userId');
+    if (userId == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      // 필요시 에러 메시지 표시
+      return;
+    }
     setState(() {
       _userId = userId;
     });
-    await _fetchChatRooms(userId);
+    await _fetchChatRooms();
   }
 
-  Future<void> _fetchChatRooms(int userId) async {
-    setState(() {
-      _isLoading = true;
-    });
-    final url = Uri.parse('${AppConfig.serverUrl}/chat-rooms/$userId');
+  Future<void> _fetchChatRooms() async {
+    print('채팅방 목록 요청 url: ${AppConfig.serverUrl}/chat-rooms/$_userId');
+    final url = Uri.parse('${AppConfig.serverUrl}/chat-rooms/$_userId');
     final res = await http.get(url);
     if (res.statusCode == 200) {
+      final List<dynamic> rooms = jsonDecode(res.body)['rooms'];
       setState(() {
-        _chatRooms = jsonDecode(res.body)['rooms'];
+        _chatRooms = rooms;
         _isLoading = false;
       });
     } else {

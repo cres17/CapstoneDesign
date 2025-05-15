@@ -74,7 +74,7 @@ class AuthService {
       final user = data['user'];
       if (user != null && user['id'] != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('user_id', user['id']);
+        await prefs.setInt('userId', user['id']);
       }
       // 토큰도 필요하면 저장
       if (data['token'] != null) {
@@ -90,7 +90,7 @@ class AuthService {
 
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('user_id');
+    await prefs.remove('userId');
     await prefs.remove('jwtToken');
     // Provider 등 상태관리도 초기화 필요시 여기에 추가
     // 예: UserProvider.of(context, listen: false).logout();
