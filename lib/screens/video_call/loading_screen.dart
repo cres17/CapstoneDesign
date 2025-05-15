@@ -72,7 +72,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         return;
       }
 
-      // 3. 분석 결과 저장
+      // 3. 분석 결과 저장 (summary를 Map<String, Map<String, Map<String, String>>> 형태로 저장)
       final analysis = {
         'date': DateTime.now().toIso8601String().substring(0, 10),
         'partner': widget.partnerName,
