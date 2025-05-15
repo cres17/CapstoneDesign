@@ -1,9 +1,13 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:capstone_porj/services/clova_speech_service.dart';
 import 'package:capstone_porj/services/openai_service.dart';
 import 'package:capstone_porj/services/analysis_storage_service.dart';
 import 'package:capstone_porj/models/call_result_data.dart';
+import 'package:http/http.dart' as http;
+import 'package:capstone_porj/services/prediction_storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final String audioFilePath;
@@ -77,7 +81,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       };
       await analysisStorage.saveAnalysis(analysis);
 
-      // 4. 메인화면으로 이동
+      // 4. 매칭률 예측 서버 호출
+      final prediction = await _requestPrediction(text, widget.partnerName);
+      if (prediction != null) {
+        await PredictionStorageService.savePrediction(prediction);
+      }
+
+      // 5. 메인화면으로 이동
       if (mounted) {
         Navigator.of(
           context,
@@ -88,6 +98,39 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         _errorMessage = '분석 중 오류가 발생했습니다: $e';
       });
     }
+  }
+
+  // 매칭률 예측 서버 호출 함수
+  Future<Map<String, dynamic>?> _requestPrediction(
+    String script,
+    String partnerName,
+  ) async {
+    try {
+      // 유저 성별 정보는 예시로 'male'로 고정, 실제로는 SharedPreferences 등에서 불러와야 함
+      final prefs = await SharedPreferences.getInstance();
+      final gender = prefs.getString('gender') ?? 'male';
+
+      final response = await http.post(
+        Uri.parse('http://192.168.1.50:5001/analyze'), // 실제 서버 IP로 변경
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'input_text': script, 'gender': gender}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // 예측 서버에서 받은 호감도 예측 확률(score) 로그 출력
+        print('[예측서버 응답] score: ${data['score']}');
+        return {
+          'date': DateTime.now().toIso8601String().substring(0, 10),
+          'partner': partnerName,
+          'result': '${((data['score'] ?? 0.0) * 100).toStringAsFixed(0)}%',
+          'comment': 'AI가 분석한 매칭률입니다.',
+          'compatibility': [], // 추후 확장 가능
+        };
+      }
+    } catch (e) {
+      print('매칭률 예측 오류: $e');
+    }
+    return null;
   }
 
   @override

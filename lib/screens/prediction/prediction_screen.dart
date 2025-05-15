@@ -1,64 +1,73 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../../services/prediction_storage_service.dart';
 
-class PredictionScreen extends StatelessWidget {
+class PredictionScreen extends StatefulWidget {
   const PredictionScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // 예측 결과 예시 데이터
-    final List<Map<String, dynamic>> predictionData = [
-      {
-        'date': '2023-05-15',
-        'partner': '김민수',
-        'result': '78%',
-        'comment':
-            '대화 내용으로 보아 서로 취향과 관심사가 비슷하여 높은 매칭률을 보입니다. 데이트를 진행하면 좋은 결과가 있을 것으로 예상됩니다.',
-        'compatibility': ['취미 활동', '여행 스타일'],
-      },
-      {
-        'date': '2023-05-10',
-        'partner': '이지은',
-        'result': '65%',
-        'comment':
-            '문화적 관심사는 유사하지만 생활 방식과 가치관에서 약간의 차이가 있습니다. 추가적인 대화를 통해 더 알아가는 것이 좋겠습니다.',
-        'compatibility': ['문화 취향'],
-      },
-    ];
+  State<PredictionScreen> createState() => _PredictionScreenState();
+}
 
+class _PredictionScreenState extends State<PredictionScreen> {
+  List<Map<String, dynamic>> _predictionData = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPredictions();
+  }
+
+  Future<void> _loadPredictions() async {
+    final data = await PredictionStorageService.loadPredictions();
+    setState(() {
+      _predictionData = data;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('매칭 예측'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '매칭 예측 결과',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // 예측 카드 리스트
-            Expanded(
-              child: ListView.builder(
-                itemCount: predictionData.length,
-                itemBuilder: (context, index) {
-                  final prediction = predictionData[index];
-                  return PredictionCard(
-                    date: prediction['date'],
-                    partner: prediction['partner'],
-                    result: prediction['result'],
-                    comment: prediction['comment'],
-                    compatibility: List<String>.from(
-                      prediction['compatibility'],
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _predictionData.isEmpty
+                ? const Center(child: Text('예측 결과가 없습니다.'))
+                : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '매칭 예측 결과',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _predictionData.length,
+                        itemBuilder: (context, index) {
+                          final prediction = _predictionData[index];
+                          return PredictionCard(
+                            date: prediction['date'] ?? '',
+                            partner: prediction['partner'] ?? '',
+                            result: prediction['result'] ?? '',
+                            comment: prediction['comment'] ?? '',
+                            compatibility: List<String>.from(
+                              prediction['compatibility'] ?? [],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
       ),
     );
   }

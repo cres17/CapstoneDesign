@@ -19,7 +19,7 @@ import 'dart:io';
 import 'package:capstone_porj/services/openai_service.dart';
 import 'package:capstone_porj/services/analysis_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:capstone_porj/screens/video_call/analysis_screen.dart';
+import 'package:capstone_porj/screens/video_call/loading_screen.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
