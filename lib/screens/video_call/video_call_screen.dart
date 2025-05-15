@@ -19,6 +19,7 @@ import 'dart:io';
 import 'package:capstone_porj/services/openai_service.dart';
 import 'package:capstone_porj/services/analysis_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:capstone_porj/screens/video_call/analysis_screen.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -360,76 +361,32 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       });
     }
 
-    // 1. 항상 로딩 다이얼로그 띄우기 (auto와 무관)
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (_) => const AlertDialog(
-              content: Row(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 16),
-                  Text('분석 중입니다...'),
-                ],
-              ),
-            ),
-      );
-    }
-
-    await _signalingService.cleanUp();
-    _signalingService.disconnect(); // 소켓도 해제
-
     final filePath = await _recorderService.stopRecording();
-    String? text;
-    if (filePath != null) {
-      final file = File(filePath);
-      if (await file.exists()) {
-        print('[VideoCallScreen] 녹음 파일 크기: ${(await file.length())} bytes');
-      } else {
-        print('[VideoCallScreen] 녹음 파일이 존재하지 않습니다.');
+    if (filePath == null) {
+      if (mounted) {
+        _showErrorDialog('녹음 파일이 존재하지 않습니다.');
       }
-      text = await _clovaSpeechService.requestSpeechToText(filePath);
-      if (text != null) {
-        print('[VideoCallScreen] 변환된 텍스트: $text');
-        CallResultData.saveCallResult(text);
-
-        // ✅ OpenAI 분석 및 저장 호출
-        await _analyzeAndSaveConversation(
-          text,
-          _remoteUserId ?? '상대방', // 상대방 이름/ID
-        );
+      return;
+    }
+    final file = File(filePath);
+    final fileLength = await file.length();
+    if (fileLength < 1000) {
+      if (mounted) {
+        _showErrorDialog('녹음 파일이 너무 짧거나 비어 있습니다.');
       }
+      return;
     }
 
-    // 2. 로딩 다이얼로그 닫기
     if (mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-
-    // 3. 결과 다이얼로그/통화종료 안내는 수동 종료일 때만
-    if (mounted && !auto && text != null) {
-      await showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: const Text('대화 텍스트 변환 결과'),
-              content: SingleChildScrollView(child: Text(text!)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('확인'),
-                ),
-              ],
-            ),
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder:
+              (_) => AnalysisScreen(
+                audioFilePath: filePath,
+                partnerName: _remoteUserId ?? '상대방',
+              ),
+        ),
       );
-      _showCallEndDialog();
-    }
-
-    // 자동 종료(auto: true)일 때는 바로 메인페이지로 pop
-    if (mounted && auto) {
-      Navigator.of(context).pop();
     }
   }
 
@@ -481,29 +438,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           }
         }
       }
-    }
-  }
-
-  // 통화 종료 후 호출되는 함수 예시
-  Future<void> _analyzeAndSaveConversation(
-    String conversationText,
-    String partnerName,
-  ) async {
-    final openAIService = OpenAIService();
-    final analysisStorage = AnalysisStorageService();
-
-    final analysisResult = await openAIService.analyzeConversation(
-      conversationText,
-    );
-
-    if (analysisResult != null) {
-      final analysis = {
-        'date': DateTime.now().toIso8601String().substring(0, 10),
-        'partner': partnerName,
-        'conversation': conversationText,
-        'summary': analysisResult,
-      };
-      await analysisStorage.saveAnalysis(analysis);
     }
   }
 
