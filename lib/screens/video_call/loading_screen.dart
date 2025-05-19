@@ -8,6 +8,7 @@ import 'package:capstone_porj/models/call_result_data.dart';
 import 'package:http/http.dart' as http;
 import 'package:capstone_porj/services/prediction_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:capstone_porj/services/auth_service.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final String audioFilePath;
@@ -87,11 +88,18 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         await PredictionStorageService.savePrediction(prediction);
       }
 
-      // 5. 메인화면으로 이동
+      // 5. 분석이 끝나면 메인 페이지로 이동
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/main', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/main', // 메인 페이지 route name
+          (route) => false,
+        );
+      }
+
+      final myUserId = await AuthService.getUserId();
+      final partnerUserId = widget.partnerName;
+      if (myUserId != null && partnerUserId != null) {
+        await _saveCallHistoryToServer(myUserId, partnerUserId);
       }
     } catch (e) {
       setState(() {
@@ -107,7 +115,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('userId');
+      final userId = prefs.getInt('user_id');
 
       // 유저 성별 정보는 예시로 'male'로 고정, 실제로는 SharedPreferences 등에서 불러와야 함
       final gender = prefs.getString('gender') ?? 'male';
@@ -133,6 +141,28 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       print('매칭률 예측 오류: $e');
     }
     return null;
+  }
+
+  Future<void> _saveCallHistoryToServer(
+    String user_id,
+    String partner_id,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.50:5000/api/call-history'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': user_id,
+          'partner_id': partner_id,
+          'date': DateTime.now().toIso8601String(),
+        }),
+      );
+      if (response.statusCode != 200) {
+        print('통화내역 서버 저장 실패: ${response.body}');
+      }
+    } catch (e) {
+      print('통화내역 서버 저장 중 오류: $e');
+    }
   }
 
   @override

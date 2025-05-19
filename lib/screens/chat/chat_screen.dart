@@ -26,8 +26,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadUserIdAndRooms() async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
-    print('userId: $userId');
+    final userId = prefs.getInt('user_id');
+    print('user_Id: $userId');
     if (userId == null) {
       setState(() {
         _isLoading = false;

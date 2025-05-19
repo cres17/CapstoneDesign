@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -327,7 +328,6 @@ app.post('/upload-profile-image', upload.single('profile_image'), async (req, re
     if (!req.file) {
       return res.status(400).json({ error: '이미지 파일이 없습니다.' });
     }
-    const fs = require('fs');
     const path = require('path');
     const oldPath = req.file.path;
 
@@ -608,6 +608,69 @@ app.get('/date-partners/:userId', async (req, res) => {
     console.error('데이트 파트너 조회 오류:', err);
     return res.status(500).json({ error: '서버 오류' });
   }
+});
+
+const CALL_HISTORY_PATH = path.join(__dirname, 'call_history.json');
+
+// 통화내역 저장 (DB)
+app.post('/api/call-history', async (req, res) => {
+  const { user_id, partner_id, date } = req.body;
+  if (!user_id || !partner_id || !date) {
+    return res.status(400).json({ error: '필수 값 누락' });
+  }
+  try {
+    // 1. (user_id, partner_id) 저장 또는 갱신
+    const [rows1] = await db.query(
+      'SELECT * FROM call_partners WHERE user_id = ? AND partner_id = ?',
+      [user_id, partner_id]
+    );
+    if (rows1.length > 0) {
+      await db.query(
+        'UPDATE call_partners SET count = count + 1, updated_at = ?, step = 1 WHERE user_id = ? AND partner_id = ?',
+        [date, user_id, partner_id]
+      );
+    } else {
+      await db.query(
+        'INSERT INTO call_partners (user_id, partner_id, updated_at, count, step) VALUES (?, ?, ?, 1, 1)',
+        [user_id, partner_id, date]
+      );
+    }
+
+    // 2. (partner_id, user_id)도 저장 또는 갱신 (반대 방향)
+    const [rows2] = await db.query(
+      'SELECT * FROM call_partners WHERE user_id = ? AND partner_id = ?',
+      [partner_id, user_id]
+    );
+    if (rows2.length > 0) {
+      await db.query(
+        'UPDATE call_partners SET count = count + 1, updated_at = ?, step = 1 WHERE user_id = ? AND partner_id = ?',
+        [date, partner_id, user_id]
+      );
+    } else {
+      await db.query(
+        'INSERT INTO call_partners (user_id, partner_id, updated_at, count, step) VALUES (?, ?, ?, 1, 1)',
+        [partner_id, user_id, date]
+      );
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('통화내역 DB 저장 오류:', err);
+    return res.status(500).json({ error: 'DB 저장 오류' });
+  }
+});
+
+// (필요시) 통화내역 조회
+app.get('/api/call-history/:user_id', (req, res) => {
+  const user_id = req.params.user_id;
+  let history = [];
+  if (fs.existsSync(CALL_HISTORY_PATH)) {
+    history = JSON.parse(fs.readFileSync(CALL_HISTORY_PATH, 'utf8'));
+  }
+  const myHistory = history.filter(
+    (item) => item.user_id == user_id || item.partner_id == user_id
+  );
+  res.json(myHistory);
 });
 
 const PORT = process.env.PORT || 5000;

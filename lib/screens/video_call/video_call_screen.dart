@@ -20,6 +20,7 @@ import 'package:capstone_porj/services/openai_service.dart';
 import 'package:capstone_porj/services/analysis_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:capstone_porj/screens/video_call/loading_screen.dart';
+import 'package:capstone_porj/services/auth_service.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -352,6 +353,29 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     _signalingService.switchCamera();
   }
 
+  // 통화내역 저장 함수
+  Future<void> _saveCallHistoryToServer(
+    String user_id,
+    String partner_id,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.50:5000/api/call-history'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': user_id,
+          'partner_id': partner_id,
+          'date': DateTime.now().toIso8601String(),
+        }),
+      );
+      if (response.statusCode != 200) {
+        print('통화내역 서버 저장 실패: ${response.body}');
+      }
+    } catch (e) {
+      print('통화내역 서버 저장 중 오류: $e');
+    }
+  }
+
   // 통화 종료
   Future<void> _endCall({bool auto = false}) async {
     if (!_isInCall) return;
@@ -377,6 +401,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       return;
     }
 
+    // 내 userId 가져오기 (예시: SharedPreferences 등에서)
+    final user_id = await AuthService.getUserId();
+    final partner_id = _remoteUserId;
+    if (user_id != null && partner_id != null) {
+      await _saveCallHistoryToServer(user_id.toString(), partner_id.toString());
+    }
+
+    // 통화 종료 시점에 분석/예측 저장 화면으로 이동
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

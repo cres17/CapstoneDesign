@@ -26,8 +26,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       _isLoading = true;
     });
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
-    print('[CallHistoryScreen] SharedPreferences에서 userId로 userId 읽음: $userId');
+    final userId = prefs.getInt('user_id');
+    print(
+      '[CallHistoryScreen] SharedPreferences에서 user_id로 user_id 읽음: $userId',
+    );
     if (userId == null) return;
     final url = Uri.parse('${AppConfig.serverUrl}/call-history/$userId');
     final res = await http.get(url);
@@ -46,7 +48,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   // 카드 클릭 시 동의/거절 다이얼로그
   void _showStepDialog(Map partner) async {
     final prefs = await SharedPreferences.getInstance();
-    final myUserId = prefs.getInt('userId');
+    final myUserId = prefs.getInt('user_id');
     final partnerId = partner['partner_id'];
     final step = partner['step'] ?? 1;
     final myAgree = partner['my_agree'] ?? 0;
@@ -108,7 +110,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'userId': myUserId,
+          'user_id': myUserId,
           'partnerId': partnerId,
           'agree': result,
         }),
@@ -211,7 +213,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'userId': myUserId,
+          'user_id': myUserId,
           'partnerId': partnerId,
           'agree': result,
           'nextStep': 3,

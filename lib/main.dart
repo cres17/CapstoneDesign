@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/splash/splash_screen.dart';
 import 'constants/app_theme.dart';
 import 'screens/main/main_screen.dart';
+import 'screens/analysis/analysis_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
-      routes: {'/main': (context) => const MainScreen()},
+      routes: {
+        '/main': (context) => const MainScreen(),
+        '/analysis': (context) => AnalysisScreen(),
+      },
     );
   }
 }

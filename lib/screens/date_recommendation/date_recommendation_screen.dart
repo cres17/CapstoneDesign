@@ -178,7 +178,7 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
   // 내 userId 가져오는 함수 (예시, 실제 구현에 맞게 수정)
   Future<int> _getMyUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('userId') ?? -1;
+    return prefs.getInt('user_id') ?? -1;
   }
 
   // 중간값 계산 함수

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../services/analysis_storage_service.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({Key? key}) : super(key: key);
@@ -13,6 +15,7 @@ class AnalysisScreen extends StatefulWidget {
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
   List<Map<String, dynamic>> _analysisData = [];
+  Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
 
   @override
   void initState() {
@@ -23,9 +26,38 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Future<void> _loadAnalysis() async {
     final storage = AnalysisStorageService();
     final data = await storage.loadAnalyses();
+
+    // userId 목록 추출
+    final userIds = data.map((e) => e['partner'].toString()).toSet();
+
+    // userId → 닉네임 매핑 가져오기
+    final nicknameMap = await _fetchNicknames(userIds);
+
     setState(() {
       _analysisData = data;
+      _userIdToNickname = nicknameMap;
     });
+  }
+
+  // userId 목록을 받아 닉네임 매핑을 가져오는 함수
+  Future<Map<String, String>> _fetchNicknames(Set<String> userIds) async {
+    Map<String, String> map = {};
+    for (final userId in userIds) {
+      try {
+        final res = await http.get(
+          Uri.parse('http://192.168.1.50:5000/users/$userId'),
+        );
+        if (res.statusCode == 200) {
+          final json = jsonDecode(res.body);
+          map[userId] = json['nickname'] ?? userId;
+        } else {
+          map[userId] = userId;
+        }
+      } catch (_) {
+        map[userId] = userId;
+      }
+    }
+    return map;
   }
 
   @override
@@ -41,6 +73,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   itemCount: _analysisData.length,
                   itemBuilder: (context, index) {
                     final analysis = _analysisData[index];
+                    final partnerId = analysis['partner'].toString();
+                    final partnerNickname =
+                        _userIdToNickname[partnerId] ?? partnerId;
                     // summary가 Map<String, Map<String, Map<String, String>>> 형태로 저장되어 있다고 가정
                     final summary = analysis['summary'];
                     Map<String, Map<String, Map<String, String>>> summaryMap =
@@ -84,8 +119,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       } catch (_) {}
                     }
                     return AnalysisCard(
+                      partner: partnerNickname,
                       date: analysis['date'] ?? '',
-                      partner: analysis['partner'] ?? '',
                       summaryMap: summaryMap,
                       conversation: analysis['conversation'] ?? '',
                     );
@@ -110,6 +145,19 @@ class AnalysisCard extends StatelessWidget {
     required this.conversation,
   }) : super(key: key);
 
+  String get formattedDate {
+    try {
+      if (date.length <= 10) {
+        // 날짜만 있을 때
+        return date;
+      }
+      final dt = DateTime.parse(date).toLocal();
+      return DateFormat('yyyy-MM-dd HH:mm').format(dt);
+    } catch (_) {
+      return date;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -121,7 +169,7 @@ class AnalysisCard extends StatelessWidget {
           partner,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(date),
+        subtitle: Text(formattedDate),
         trailing: TextButton(
           child: const Text('자세히 보기 >'),
           onPressed: () {
@@ -131,7 +179,7 @@ class AnalysisCard extends StatelessWidget {
                 builder:
                     (_) => AnalysisDetailScreen(
                       partner: partner,
-                      date: date,
+                      date: formattedDate,
                       summaryMap: summaryMap,
                       conversation: conversation,
                     ),
