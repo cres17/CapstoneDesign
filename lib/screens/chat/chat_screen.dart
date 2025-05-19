@@ -17,6 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _chatRooms = [];
   bool _isLoading = true;
   int? _userId;
+  Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
 
   @override
   void initState() {
@@ -27,12 +28,10 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadUserIdAndRooms() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('user_id');
-    print('user_Id: $userId');
     if (userId == null) {
       setState(() {
         _isLoading = false;
       });
-      // 필요시 에러 메시지 표시
       return;
     }
     setState(() {
@@ -42,13 +41,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _fetchChatRooms() async {
-    print('채팅방 목록 요청 url: ${AppConfig.serverUrl}/chat-rooms/$_userId');
     final url = Uri.parse('${AppConfig.serverUrl}/chat-rooms/$_userId');
     final res = await http.get(url);
     if (res.statusCode == 200) {
       final List<dynamic> rooms = jsonDecode(res.body)['rooms'];
+      // user_id 목록 추출
+      final userIds = rooms.map((room) => _getPartnerId(room)).toSet();
+      final nicknameMap = await _fetchNicknames(userIds);
       setState(() {
         _chatRooms = rooms;
+        _userIdToNickname = nicknameMap;
         _isLoading = false;
       });
     } else {
@@ -56,6 +58,27 @@ class _ChatScreenState extends State<ChatScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // user_id → 닉네임 매핑 함수
+  Future<Map<String, String>> _fetchNicknames(Set<String> userIds) async {
+    Map<String, String> map = {};
+    for (final userId in userIds) {
+      try {
+        final res = await http.get(
+          Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+        );
+        if (res.statusCode == 200) {
+          final json = jsonDecode(res.body);
+          map[userId] = json['nickname'] ?? userId;
+        } else {
+          map[userId] = userId;
+        }
+      } catch (_) {
+        map[userId] = userId;
+      }
+    }
+    return map;
   }
 
   String _getPartnerId(Map room) {
@@ -77,6 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
       itemBuilder: (context, index) {
         final room = _chatRooms[index];
         final partnerId = _getPartnerId(room);
+        final partnerNickname = _userIdToNickname[partnerId] ?? partnerId;
         return ListTile(
           leading: CircleAvatar(
             backgroundColor: Colors.grey[200],
@@ -84,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
               '${AppConfig.serverUrl}/user-profile/$partnerId',
             ),
           ),
-          title: Text('상대방 유저ID: $partnerId'),
+          title: Text('상대방: $partnerNickname'), // 닉네임으로 표시
           subtitle: Text('채팅방 ID: ${room['id']}'),
           onTap: () {
             Navigator.push(
@@ -95,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       roomId: room['id'],
                       myUserId: _userId!,
                       partnerId: int.parse(partnerId),
+                      partnerNickname: partnerNickname, // 닉네임 전달
                     ),
               ),
             );
@@ -109,12 +134,14 @@ class ChatRoomPage extends StatefulWidget {
   final int roomId;
   final int myUserId;
   final int partnerId;
+  final String partnerNickname;
 
   const ChatRoomPage({
     Key? key,
     required this.roomId,
     required this.myUserId,
     required this.partnerId,
+    required this.partnerNickname,
   }) : super(key: key);
 
   @override
@@ -201,7 +228,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('상대방 유저ID: ${widget.partnerId}')),
+      appBar: AppBar(title: Text('상대방: ${widget.partnerNickname}')), // 닉네임 표시
       body: Column(
         children: [
           Expanded(

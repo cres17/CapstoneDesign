@@ -58,7 +58,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('매칭 예측'), centerTitle: true),
+      appBar: AppBar(title: const Text('호감도도 예측'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child:
@@ -70,7 +70,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '매칭 예측 결과',
+                      '호감도 예측 결과',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -142,7 +142,7 @@ class PredictionCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '$partner님과의 매칭 예측',
+                        '$partner님과의 호감도도 예측',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

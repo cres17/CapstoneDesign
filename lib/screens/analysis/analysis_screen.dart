@@ -29,8 +29,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
     // userId 목록 추출
     final userIds = data.map((e) => e['partner'].toString()).toSet();
-
-    // userId → 닉네임 매핑 가져오기
     final nicknameMap = await _fetchNicknames(userIds);
 
     setState(() {
@@ -39,7 +37,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
   }
 
-  // userId 목록을 받아 닉네임 매핑을 가져오는 함수
   Future<Map<String, String>> _fetchNicknames(Set<String> userIds) async {
     Map<String, String> map = {};
     for (final userId in userIds) {

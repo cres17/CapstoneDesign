@@ -408,13 +408,11 @@ app.post('/call-end-log', (req, res) => {
 
 // 내 통화내역 조회 API
 app.get('/call-history/:userId', async (req, res) => {
-  const userId = req.params.userId;
-  console.log(`[통화내역] 요청 userId: ${userId}`);
+  const userId = parseInt(req.params.userId, 10);
   if (!userId) {
     return res.status(400).json({ error: 'userId가 필요합니다.' });
   }
   try {
-    // partner_agree를 상대방의 my_agree로 반환
     const [rows] = await db.query(
       `SELECT 
          partner_id, 
@@ -422,105 +420,82 @@ app.get('/call-history/:userId', async (req, res) => {
          MAX(updated_at) as updated_at, 
          MAX(step) as step, 
          MAX(my_agree) as my_agree,
-         (SELECT MAX(my_agree) FROM call_partners WHERE user_id = partner_id AND partner_id = ?) as partner_agree
+         (SELECT MAX(my_agree) FROM call_partners WHERE user_id = partner_id AND partner_id = user_id) as partner_agree
        FROM call_partners
        WHERE user_id = ?
        GROUP BY partner_id
        ORDER BY updated_at DESC`,
-      [userId, userId]
+      [userId]
     );
     return res.status(200).json({ partners: rows });
   } catch (err) {
-    console.error('통화내역 조회 오류:', err);
     return res.status(500).json({ error: '서버 오류' });
   }
 });
 
 // 단계 변경 및 동의/거절 처리 API
 app.post('/call-partner/step', async (req, res) => {
-  const { userId, partnerId, agree, nextStep } = req.body;
-  if (!userId || !partnerId || typeof agree !== 'boolean') {
+  let { user_id, partnerId, agree, nextStep } = req.body;
+  user_id = parseInt(user_id, 10);
+  partnerId = parseInt(partnerId, 10);
+
+  if (!user_id || !partnerId || agree === undefined || !nextStep) {
     return res.status(400).json({ error: '필수 값 누락' });
   }
   try {
-    if (agree) {
-      // 2단계(사진 공개) → 3단계(데이트)로 진행 요청
-      if (nextStep === 3) {
-        // 내 row의 my_agree, 상대방 row의 partner_agree 모두 2로 변경 (데이트 동의)
-        await db.query(
-          `UPDATE call_partners SET my_agree = 2 WHERE user_id = ? AND partner_id = ?`,
-          [userId, partnerId]
-        );
-        await db.query(
-          `UPDATE call_partners SET partner_agree = 2 WHERE user_id = ? AND partner_id = ?`,
-          [partnerId, userId]
-        );
-        // 둘 다 2면 step=3
-        const [rows] = await db.query(
-          `SELECT my_agree, partner_agree FROM call_partners WHERE user_id = ? AND partner_id = ?`,
-          [userId, partnerId]
-        );
-        const myAgree = rows[0]?.my_agree || 0;
-        const partnerAgree = rows[0]?.partner_agree || 0;
-        if (myAgree === 2 && partnerAgree === 2) {
-          await db.query(
-            `UPDATE call_partners SET step = 3 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
-            [userId, partnerId, partnerId, userId]
-          );
-          // ★★★ chat_rooms 생성 (이미 있으면 생성 안함)
-          const [exist] = await db.query(
-            `SELECT id FROM chat_rooms WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)`,
-            [userId, partnerId, partnerId, userId]
-          );
-          if (exist.length === 0) {
-            await db.query(
-              `INSERT INTO chat_rooms (user1_id, user2_id) VALUES (?, ?)`,
-              [userId, partnerId]
-            );
-          }
-          return res.json({ success: true, step: 3 });
-        } else {
-          return res.json({ success: true, step: 2 });
-        }
-      }
-      // 기존 2단계(사진 공개) 동의 로직은 그대로
-      // 내 row의 my_agree, 상대방 row의 partner_agree 모두 1로 변경
+    // 1. 내 row 업데이트 (my_agree)
+    await db.query(
+      'UPDATE call_partners SET my_agree = ? WHERE user_id = ? AND partner_id = ?',
+      [nextStep === 3 ? 2 : 1, user_id, partnerId]
+    );
+    // 2. 상대 row 업데이트 (partner_agree)
+    await db.query(
+      'UPDATE call_partners SET partner_agree = ? WHERE user_id = ? AND partner_id = ?',
+      [nextStep === 3 ? 2 : 1, partnerId, user_id]
+    );
+
+    // 3. 동의 상태 확인
+    const [rows] = await db.query(
+      'SELECT my_agree, partner_agree, step FROM call_partners WHERE user_id = ? AND partner_id = ?',
+      [user_id, partnerId]
+    );
+    const myAgree = rows[0]?.my_agree || 0;
+    const partnerAgree = rows[0]?.partner_agree || 0;
+    let step = rows[0]?.step || 1;
+
+    // 4. 두 명 모두 동의해야만 단계가 올라감
+    if (step === 1 && myAgree === 1 && partnerAgree === 1) {
+      // 2단계(사진 공개)로
       await db.query(
-        `UPDATE call_partners SET my_agree = 1 WHERE user_id = ? AND partner_id = ?`,
-        [userId, partnerId]
+        'UPDATE call_partners SET step = 2 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)',
+        [user_id, partnerId, partnerId, user_id]
       );
-      await db.query(
-        `UPDATE call_partners SET partner_agree = 1 WHERE user_id = ? AND partner_id = ?`,
-        [partnerId, userId]
-      );
-      // 동의 상태 확인
-      const [rows] = await db.query(
-        `SELECT my_agree, partner_agree FROM call_partners WHERE user_id = ? AND partner_id = ?`,
-        [userId, partnerId]
-      );
-      const myAgree = rows[0]?.my_agree || 0;
-      const partnerAgree = rows[0]?.partner_agree || 0;
-      // 둘 다 동의하면 step=2로 변경
-      if (myAgree && partnerAgree) {
-        await db.query(
-          `UPDATE call_partners SET step = 2 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
-          [userId, partnerId, partnerId, userId]
-        );
-        return res.json({ success: true, step: 2 });
-      } else {
-        return res.json({ success: true, step: 1 });
-      }
-    } else {
-      // 거절: call_partners에서 서로 삭제
-      await db.query(
-        `DELETE FROM call_partners WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)`,
-        [userId, partnerId, partnerId, userId]
-      );
-      return res.json({ success: true, deleted: true });
+      step = 2;
     }
+    if (step === 2 && myAgree === 2 && partnerAgree === 2) {
+      // 3단계(데이트)로
+      await db.query(
+        'UPDATE call_partners SET step = 3 WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)',
+        [user_id, partnerId, partnerId, user_id]
+      );
+      step = 3;
+
+      // ★★★ 3단계 진입 시 채팅방 자동 생성 (중복 방지)
+      const [chatRooms] = await db.query(
+        'SELECT id FROM chat_rooms WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)',
+        [user_id, partnerId, partnerId, user_id]
+      );
+      if (chatRooms.length === 0) {
+        await db.query(
+          'INSERT INTO chat_rooms (user1_id, user2_id) VALUES (?, ?)',
+          [user_id, partnerId]
+        );
+      }
+    }
+
+    return res.json({ success: true, step });
   } catch (err) {
-    console.error('단계 변경 오류:', err);
-    return res.status(500).json({ error: '서버 오류' });
+    return res.status(500).json({ error: 'DB 오류' });
   }
 });
 
@@ -671,6 +646,20 @@ app.get('/api/call-history/:user_id', (req, res) => {
     (item) => item.user_id == user_id || item.partner_id == user_id
   );
   res.json(myHistory);
+});
+
+// 유저 정보 조회 (닉네임 포함)
+app.get('/users/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const [rows] = await db.query('SELECT id, nickname FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: '유저를 찾을 수 없습니다.' });
+    }
+    return res.json(rows[0]);
+  } catch (err) {
+    return res.status(500).json({ error: '서버 오류' });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
