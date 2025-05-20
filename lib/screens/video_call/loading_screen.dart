@@ -121,7 +121,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       final gender = prefs.getString('gender') ?? 'male';
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.50:5001/analyze'), // 실제 서버 IP로 변경
+        Uri.parse('http://172.30.33.102:5001/analyze'), // 실제 서버 IP로 변경
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'input_text': script, 'gender': gender}),
       );
@@ -149,7 +149,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.50:5000/api/call-history'),
+        Uri.parse('http://172.30.33.102:5000/api/call-history'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': user_id,

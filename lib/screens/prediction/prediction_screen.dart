@@ -40,7 +40,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
     for (final userId in userIds) {
       try {
         final res = await http.get(
-          Uri.parse('http://192.168.1.50:5000/users/$userId'),
+          Uri.parse('http://172.30.33.102:5000/users/$userId'),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);

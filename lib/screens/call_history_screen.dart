@@ -210,7 +210,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               content: Text(
                 partnerAgree == 2
                     ? '상대방이 이미 데이트에 동의했습니다. 데이트에 동의하시겠습니까?'
-                    : '서로 데이트에 동의하면 연락처가 공개됩니다.\n진행하시겠습니까?',
+                    : '서로 데이트에 동의하면 채팅방이 개설됩니다.\n진행하시겠습니까?',
               ),
               actions: [
                 TextButton(
