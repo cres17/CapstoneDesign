@@ -5,6 +5,7 @@ import '../../services/analysis_storage_service.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import '../../config/app_config.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({Key? key}) : super(key: key);
@@ -42,7 +43,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     for (final userId in userIds) {
       try {
         final res = await http.get(
-          Uri.parse('http://172.30.33.102:5000/users/$userId'),
+          Uri.parse('${AppConfig.serverUrl}/users/$userId'),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);

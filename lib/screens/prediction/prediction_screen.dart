@@ -4,6 +4,7 @@ import '../../services/prediction_storage_service.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:capstone_porj/config/app_config.dart';
 
 class PredictionScreen extends StatefulWidget {
   const PredictionScreen({Key? key}) : super(key: key);
@@ -40,7 +41,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
     for (final userId in userIds) {
       try {
         final res = await http.get(
-          Uri.parse('http://172.30.33.102:5000/users/$userId'),
+          Uri.parse('${AppConfig.serverUrl}/users/$userId'),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);
@@ -58,7 +59,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('호감도도 예측'), centerTitle: true),
+      appBar: AppBar(title: const Text('호감도 예측'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child:
@@ -142,7 +143,7 @@ class PredictionCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '$partner님과의 호감도도 예측',
+                        '$partner님과의 호감도 예측',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -185,7 +186,7 @@ class PredictionCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '성사 확률',
+                                '호감 지수',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -266,7 +267,7 @@ class PredictionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '소개팅 성사 확률',
+                      '소개팅 호감 지수',
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],

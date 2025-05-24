@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:capstone_porj/services/prediction_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:capstone_porj/services/auth_service.dart';
+import 'package:capstone_porj/config/app_config.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final String audioFilePath;
@@ -121,7 +122,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       final gender = prefs.getString('gender') ?? 'male';
 
       final response = await http.post(
-        Uri.parse('http://172.30.33.102:5001/analyze'), // 실제 서버 IP로 변경
+        Uri.parse('${AppConfig.serverUrl}/analyze'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'input_text': script, 'gender': gender}),
       );
@@ -132,7 +133,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         return {
           'date': DateTime.now().toIso8601String().substring(0, 10),
           'partner': partnerName,
-          'result': '${((data['score'] ?? 0.0) * 100).toStringAsFixed(0)}%',
+          'result': '${((data['score'] ?? 0.0) * 100).toStringAsFixed(0)}',
           'comment': 'AI가 분석한 매칭률입니다.',
           'compatibility': [], // 추후 확장 가능
         };
@@ -149,7 +150,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('http://172.30.33.102:5000/api/call-history'),
+        Uri.parse('${AppConfig.serverUrl}/api/call-history'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': user_id,

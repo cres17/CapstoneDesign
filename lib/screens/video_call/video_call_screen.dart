@@ -360,7 +360,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('http://172.30.33.102:5000/api/call-history'),
+        Uri.parse('${AppConfig.serverUrl}/api/call-history'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': user_id,
