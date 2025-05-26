@@ -153,12 +153,23 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = true;
+  String? myNickname;
+  String? partnerNickname;
 
   @override
   void initState() {
     super.initState();
+    myNickname = null;
+    partnerNickname = widget.partnerNickname;
     _connectSocket();
     _fetchMessages();
+    _fetchMyNickname();
+  }
+
+  Future<void> _fetchMyNickname() async {
+    final prefs = await SharedPreferences.getInstance();
+    myNickname = prefs.getString('nickname') ?? '나';
+    setState(() {});
   }
 
   void _connectSocket() {
@@ -241,33 +252,72 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                       itemBuilder: (context, index) {
                         final msg = messages[index];
                         final isMe = msg['sender_id'] == widget.myUserId;
+                        final senderName =
+                            isMe
+                                ? (myNickname ?? '나')
+                                : (partnerNickname ?? '상대방');
                         return Align(
                           alignment:
                               isMe
                                   ? Alignment.centerRight
                                   : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(
-                              vertical: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 2,
                               horizontal: 8,
                             ),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
+                            child: Column(
+                              crossAxisAlignment:
                                   isMe
-                                      ? AppColors.primary.withOpacity(0.8)
-                                      : Colors.grey[200],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              msg['message'] ?? '',
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black87,
-                                fontSize: 16,
-                              ),
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                              children: [
+                                if (!isMe)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 4,
+                                      bottom: 2,
+                                    ),
+                                    child: Text(
+                                      senderName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isMe
+                                            ? AppColors.primary.withOpacity(0.8)
+                                            : Colors.grey[200],
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(14),
+                                      topRight: const Radius.circular(14),
+                                      bottomLeft: Radius.circular(
+                                        isMe ? 14 : 2,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        isMe ? 2 : 14,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    msg['message'] ?? '',
+                                    style: TextStyle(
+                                      color:
+                                          isMe ? Colors.white : Colors.black87,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
