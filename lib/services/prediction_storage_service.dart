@@ -8,6 +8,12 @@ class PredictionStorageService {
   static Future<void> savePrediction(Map<String, dynamic> prediction) async {
     final prefs = await SharedPreferences.getInstance();
     final List<String> list = prefs.getStringList(_key) ?? [];
+    // 동일 partner의 기존 예측 중 데이터 제거
+    list.removeWhere((e) {
+      final item = jsonDecode(e);
+      return item['partner'] == prediction['partner'] &&
+          (item['isProcessing'] ?? false);
+    });
     list.insert(0, jsonEncode(prediction)); // 최신순 정렬
     await prefs.setStringList(_key, list);
   }
@@ -23,5 +29,24 @@ class PredictionStorageService {
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+  }
+
+  // 예측 중 데이터 추가 함수
+  static Future<void> addProcessingPrediction(
+    String partner,
+    String date,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> list = prefs.getStringList(_key) ?? [];
+    // 동일 partner의 기존 예측 중 데이터 제거
+    list.removeWhere((e) {
+      final item = jsonDecode(e);
+      return item['partner'] == partner && (item['isProcessing'] ?? false);
+    });
+    list.insert(
+      0,
+      jsonEncode({'date': date, 'partner': partner, 'isProcessing': true}),
+    );
+    await prefs.setStringList(_key, list);
   }
 }

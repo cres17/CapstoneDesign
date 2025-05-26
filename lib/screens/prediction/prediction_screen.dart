@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:capstone_porj/config/app_config.dart';
+import 'dart:async';
 
 class PredictionScreen extends StatefulWidget {
   const PredictionScreen({Key? key}) : super(key: key);
@@ -17,11 +18,23 @@ class _PredictionScreenState extends State<PredictionScreen> {
   List<Map<String, dynamic>> _predictionData = [];
   bool _isLoading = true;
   Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadPredictions();
+    // 3초마다 새로고침
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _loadPredictions(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadPredictions() async {
@@ -70,19 +83,37 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '호감도 예측 결과',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    // 예측중 카드
+                    if (_predictionData.any((a) => a['isProcessing'] == true))
+                      Card(
+                        color: Colors.grey[200],
+                        margin: const EdgeInsets.only(bottom: 16),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ListTile(
+                          leading: const CircularProgressIndicator(),
+                          title: const Text(
+                            '최근 대화 예측중...',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: const Text('예측이 완료되면 자동으로 결과가 표시됩니다.'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                    // 기존 예측 카드 리스트
                     Expanded(
                       child: ListView.builder(
-                        itemCount: _predictionData.length,
+                        itemCount:
+                            _predictionData
+                                .where((a) => a['isProcessing'] != true)
+                                .length,
                         itemBuilder: (context, index) {
-                          final prediction = _predictionData[index];
+                          final filtered =
+                              _predictionData
+                                  .where((a) => a['isProcessing'] != true)
+                                  .toList();
+                          final prediction = filtered[index];
                           final partnerId = prediction['partner'].toString();
                           final partnerNickname =
                               _userIdToNickname[partnerId] ?? partnerId;

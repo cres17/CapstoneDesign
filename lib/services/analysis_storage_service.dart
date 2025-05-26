@@ -15,6 +15,13 @@ class AnalysisStorageService {
         list = jsonDecode(content);
       }
     }
+    // 동일 partner의 기존 분석 중 데이터 제거
+    list.removeWhere(
+      (item) =>
+          item is Map &&
+          item['partner'] == analysis['partner'] &&
+          (item['isProcessing'] ?? false),
+    );
     list.insert(0, analysis); // 최신순
     await file.writeAsString(jsonEncode(list));
   }
@@ -30,6 +37,15 @@ class AnalysisStorageService {
       }
     }
     return [];
+  }
+
+  // 분석 중 데이터 추가 함수
+  Future<void> addProcessingAnalysis(String partner, String date) async {
+    await saveAnalysis({
+      'date': date,
+      'partner': partner,
+      'isProcessing': true,
+    });
   }
 
   Future<File> _getFile() async {

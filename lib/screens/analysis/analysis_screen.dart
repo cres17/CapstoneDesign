@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
+import 'dart:async';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({Key? key}) : super(key: key);
@@ -17,11 +18,22 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen> {
   List<Map<String, dynamic>> _analysisData = [];
   Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadAnalysis();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _loadAnalysis(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAnalysis() async {
@@ -67,62 +79,94 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         child:
             _analysisData.isEmpty
                 ? const Center(child: Text('분석된 대화가 없습니다.'))
-                : ListView.builder(
-                  itemCount: _analysisData.length,
-                  itemBuilder: (context, index) {
-                    final analysis = _analysisData[index];
-                    final partnerId = analysis['partner'].toString();
-                    final partnerNickname =
-                        _userIdToNickname[partnerId] ?? partnerId;
-                    // summary가 Map<String, Map<String, Map<String, String>>> 형태로 저장되어 있다고 가정
-                    final summary = analysis['summary'];
-                    Map<String, Map<String, Map<String, String>>> summaryMap =
-                        {};
-                    if (summary is Map) {
-                      summaryMap = summary.map(
-                        (k, v) => MapEntry(
-                          k.toString(),
-                          (v as Map).map(
-                            (kk, vv) => MapEntry(
-                              kk.toString(),
-                              (vv as Map).map(
-                                (kkk, vvv) =>
-                                    MapEntry(kkk.toString(), vvv.toString()),
-                              ),
-                            ),
-                          ),
+                : Column(
+                  children: [
+                    if (_analysisData.any((a) => a['isProcessing'] == true))
+                      Card(
+                        color: Colors.grey[200],
+                        margin: const EdgeInsets.only(bottom: 16),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                      );
-                    } else if (summary is String) {
-                      try {
-                        final parsed = jsonDecode(summary);
-                        if (parsed is Map) {
-                          summaryMap = parsed.map(
-                            (k, v) => MapEntry(
-                              k.toString(),
-                              (v as Map).map(
-                                (kk, vv) => MapEntry(
-                                  kk.toString(),
-                                  (vv as Map).map(
-                                    (kkk, vvv) => MapEntry(
-                                      kkk.toString(),
-                                      vvv.toString(),
+                        child: ListTile(
+                          leading: const CircularProgressIndicator(),
+                          title: const Text(
+                            '최근 대화 분석중...',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: const Text('분석이 완료되면 자동으로 결과가 표시됩니다.'),
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount:
+                            _analysisData
+                                .where((a) => a['isProcessing'] != true)
+                                .length,
+                        itemBuilder: (context, index) {
+                          final filtered =
+                              _analysisData
+                                  .where((a) => a['isProcessing'] != true)
+                                  .toList();
+                          final analysis = filtered[index];
+                          final partnerId = analysis['partner'].toString();
+                          final partnerNickname =
+                              _userIdToNickname[partnerId] ?? partnerId;
+                          // summary가 Map<String, Map<String, Map<String, String>>> 형태로 저장되어 있다고 가정
+                          final summary = analysis['summary'];
+                          Map<String, Map<String, Map<String, String>>>
+                          summaryMap = {};
+                          if (summary is Map) {
+                            summaryMap = summary.map(
+                              (k, v) => MapEntry(
+                                k.toString(),
+                                (v as Map).map(
+                                  (kk, vv) => MapEntry(
+                                    kk.toString(),
+                                    (vv as Map).map(
+                                      (kkk, vvv) => MapEntry(
+                                        kkk.toString(),
+                                        vvv.toString(),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
+                            );
+                          } else if (summary is String) {
+                            try {
+                              final parsed = jsonDecode(summary);
+                              if (parsed is Map) {
+                                summaryMap = parsed.map(
+                                  (k, v) => MapEntry(
+                                    k.toString(),
+                                    (v as Map).map(
+                                      (kk, vv) => MapEntry(
+                                        kk.toString(),
+                                        (vv as Map).map(
+                                          (kkk, vvv) => MapEntry(
+                                            kkk.toString(),
+                                            vvv.toString(),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (_) {}
+                          }
+                          return AnalysisCard(
+                            partner: partnerNickname,
+                            date: analysis['date'] ?? '',
+                            summaryMap: summaryMap,
+                            conversation: analysis['conversation'] ?? '',
                           );
-                        }
-                      } catch (_) {}
-                    }
-                    return AnalysisCard(
-                      partner: partnerNickname,
-                      date: analysis['date'] ?? '',
-                      summaryMap: summaryMap,
-                      conversation: analysis['conversation'] ?? '',
-                    );
-                  },
+                        },
+                      ),
+                    ),
+                  ],
                 ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:capstone_porj/models/call_result_data.dart';
+import 'package:capstone_porj/services/prediction_storage_service.dart';
 import 'package:capstone_porj/widgets/face_mask_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -408,18 +409,95 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       await _saveCallHistoryToServer(user_id.toString(), partner_id.toString());
     }
 
-    // 통화 종료 시점에 분석/예측 저장 화면으로 이동
+    // 통화 종료 시점에 바로 메인화면으로 이동
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder:
-              (_) => AnalysisScreen(
-                audioFilePath: filePath,
-                partnerName: _remoteUserId ?? '상대방',
-              ),
-        ),
-      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
     }
+
+    // 분석중/예측중 카드 추가
+    final now = DateTime.now().toIso8601String().substring(0, 10);
+    await AnalysisStorageService().addProcessingAnalysis(
+      _remoteUserId ?? '상대방',
+      now,
+    );
+    await PredictionStorageService.addProcessingPrediction(
+      _remoteUserId ?? '상대방',
+      now,
+    );
+
+    // 백그라운드에서 분석/예측 요청 실행
+    _analyzeAndSaveInBackground(filePath, _remoteUserId ?? '상대방');
+  }
+
+  // 백그라운드 분석/예측 함수 추가
+  Future<void> _analyzeAndSaveInBackground(
+    String audioFilePath,
+    String partnerName,
+  ) async {
+    try {
+      final clova = ClovaSpeechService();
+      final openai = OpenAIService();
+      final analysisStorage = AnalysisStorageService();
+
+      // 1. 음성 -> 텍스트
+      final file = File(audioFilePath);
+      if (!await file.exists()) return;
+      final fileLength = await file.length();
+      if (fileLength < 1000) return;
+      final text = await clova.requestSpeechToText(audioFilePath);
+      if (text == null || text.trim().isEmpty) return;
+      CallResultData.saveCallResult(text);
+
+      // 2. OpenAI 분석
+      final analysisResult = await openai.analyzeConversation(text);
+      if (analysisResult == null) return;
+
+      // 3. 분석 결과 저장
+      final analysis = {
+        'date': DateTime.now().toIso8601String().substring(0, 10),
+        'partner': partnerName,
+        'conversation': text,
+        'summary': analysisResult,
+        'isProcessing': false, // 분석 완료 표시
+      };
+      await analysisStorage.saveAnalysis(analysis);
+
+      // 4. 예측 서버 호출
+      final prediction = await _requestPrediction(text, partnerName);
+      if (prediction != null) {
+        await PredictionStorageService.savePrediction(prediction);
+      }
+    } catch (e) {
+      // 에러 무시 (백그라운드)
+    }
+  }
+
+  // 예측 서버 호출 함수 (복사)
+  Future<Map<String, dynamic>?> _requestPrediction(
+    String script,
+    String partnerName,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final gender = prefs.getString('gender') ?? 'male';
+      final response = await http.post(
+        Uri.parse('http://192.168.1.50:5001/analyze'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'input_text': script, 'gender': gender}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'date': DateTime.now().toIso8601String().substring(0, 10),
+          'partner': partnerName,
+          'result': '${((data['score'] ?? 0.0) * 100).toStringAsFixed(0)}',
+          'comment': 'AI가 분석한 매칭률입니다.',
+          'compatibility': [],
+          'isProcessing': false, // 예측 완료 표시
+        };
+      }
+    } catch (e) {}
+    return null;
   }
 
   // 오류 다이얼로그
