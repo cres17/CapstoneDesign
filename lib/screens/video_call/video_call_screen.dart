@@ -411,7 +411,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     // 통화 종료 시점에 바로 메인화면으로 이동
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => LoadingScreen()));
     }
 
     // 분석중/예측중 카드 추가

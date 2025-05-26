@@ -59,7 +59,7 @@ class OpenAIService {
 $conversation
 """;
     final body = {
-      "model": "o4-mini",
+      "model": "gpt-4.1-nano-2025-04-14",
       "messages": [
         {"role": "user", "content": prompt},
       ],
