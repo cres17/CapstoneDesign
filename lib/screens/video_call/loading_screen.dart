@@ -122,7 +122,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       final gender = prefs.getString('gender') ?? 'male';
 
       final response = await http.post(
-        Uri.parse('${AppConfig.serverUrl}/analyze'),
+        Uri.parse('http://192.168.1.50:5001/analyze'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'input_text': script, 'gender': gender}),
       );
