@@ -5,12 +5,21 @@ import 'screens/splash/splash_screen.dart';
 import 'constants/app_theme.dart';
 import 'screens/main/main_screen.dart';
 import 'screens/analysis/analysis_screen.dart';
+import 'package:provider/provider.dart';
+import 'providers/analysis_prediction_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AnalysisPredictionProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

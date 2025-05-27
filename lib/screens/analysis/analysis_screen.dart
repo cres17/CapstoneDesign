@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:capstone_porj/providers/analysis_prediction_provider.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({Key? key}) : super(key: key);
@@ -31,7 +33,17 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Provider.of<AnalysisPredictionProvider>(context).addListener(_loadAnalysis);
+  }
+
+  @override
   void dispose() {
+    Provider.of<AnalysisPredictionProvider>(
+      context,
+      listen: false,
+    ).removeListener(_loadAnalysis);
     _refreshTimer?.cancel();
     super.dispose();
   }

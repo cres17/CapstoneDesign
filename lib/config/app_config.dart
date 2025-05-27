@@ -1,6 +1,6 @@
 class AppConfig {
   // 서버 IP 주소 설정 - 여기만 수정하면 됨
-  static const String serverIp = "192.168.1.50";
+  static const String serverIp = "172.30.136.49";
   static const int serverPort = 5000;
 
   // 서버 URL 반환 (http)

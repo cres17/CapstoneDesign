@@ -22,6 +22,8 @@ import 'package:capstone_porj/services/analysis_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:capstone_porj/screens/video_call/loading_screen.dart';
 import 'package:capstone_porj/services/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:capstone_porj/providers/analysis_prediction_provider.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({Key? key}) : super(key: key);
@@ -460,7 +462,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         'partner': partnerName,
         'conversation': text,
         'summary': analysisResult,
-        'isProcessing': false, // 분석 완료 표시
+        'isProcessing': false,
       };
       await analysisStorage.saveAnalysis(analysis);
 
@@ -468,6 +470,14 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       final prediction = await _requestPrediction(text, partnerName);
       if (prediction != null) {
         await PredictionStorageService.savePrediction(prediction);
+      }
+
+      // 여기서 Provider로 알림
+      if (mounted) {
+        Provider.of<AnalysisPredictionProvider>(
+          context,
+          listen: false,
+        ).notifyUpdate();
       }
     } catch (e) {
       // 에러 무시 (백그라운드)
@@ -483,7 +493,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       final prefs = await SharedPreferences.getInstance();
       final gender = prefs.getString('gender') ?? 'male';
       final response = await http.post(
-        Uri.parse('http://192.168.1.50:5001/analyze'),
+        Uri.parse('http://172.30.136.49:5001/analyze'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'input_text': script, 'gender': gender}),
       );
