@@ -9,6 +9,7 @@ import '../../config/app_config.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:capstone_porj/providers/analysis_prediction_provider.dart';
+import 'package:capstone_porj/main.dart'; // routeObserver import 필요
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({Key? key}) : super(key: key);
@@ -17,15 +18,51 @@ class AnalysisScreen extends StatefulWidget {
   State<AnalysisScreen> createState() => _AnalysisScreenState();
 }
 
-class _AnalysisScreenState extends State<AnalysisScreen> {
+class _AnalysisScreenState extends State<AnalysisScreen> with RouteAware {
   List<Map<String, dynamic>> _analysisData = [];
   Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
   Timer? _refreshTimer;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadAnalysis();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPush() {
+    // 페이지가 화면에 나타날 때 타이머 시작
+    _startTimer();
+  }
+
+  @override
+  void didPopNext() {
+    // 다른 페이지에서 돌아왔을 때 타이머 시작
+    _startTimer();
+  }
+
+  @override
+  void didPop() {
+    // 페이지에서 나갈 때 타이머 중지
+    _refreshTimer?.cancel();
+  }
+
+  @override
+  void didPushNext() {
+    // 다른 페이지로 이동할 때 타이머 중지
+    _refreshTimer?.cancel();
+  }
+
+  void _startTimer() {
+    _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 3),
       (_) => _loadAnalysis(),
@@ -33,19 +70,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    Provider.of<AnalysisPredictionProvider>(context).addListener(_loadAnalysis);
-  }
-
-  @override
-  void dispose() {
-    Provider.of<AnalysisPredictionProvider>(
-      context,
-      listen: false,
-    ).removeListener(_loadAnalysis);
-    _refreshTimer?.cancel();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadAnalysis();
+    // 타이머는 RouteAware에서 관리
   }
 
   Future<void> _loadAnalysis() async {

@@ -8,6 +8,9 @@ import 'screens/analysis/analysis_screen.dart';
 import 'package:provider/provider.dart';
 import 'providers/analysis_prediction_provider.dart';
 
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
@@ -36,6 +39,7 @@ class MyApp extends StatelessWidget {
         '/main': (context) => const MainScreen(),
         '/analysis': (context) => AnalysisScreen(),
       },
+      navigatorObservers: [routeObserver],
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:capstone_porj/config/app_config.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:capstone_porj/providers/analysis_prediction_provider.dart';
+import 'package:capstone_porj/main.dart'; // routeObserver import 필요
 
 class PredictionScreen extends StatefulWidget {
   const PredictionScreen({Key? key}) : super(key: key);
@@ -16,17 +17,47 @@ class PredictionScreen extends StatefulWidget {
   State<PredictionScreen> createState() => _PredictionScreenState();
 }
 
-class _PredictionScreenState extends State<PredictionScreen> {
+class _PredictionScreenState extends State<PredictionScreen> with RouteAware {
   List<Map<String, dynamic>> _predictionData = [];
   bool _isLoading = true;
   Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
   Timer? _refreshTimer;
 
   @override
-  void initState() {
-    super.initState();
-    _loadPredictions();
-    // 3초마다 새로고침
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPush() {
+    _startTimer();
+  }
+
+  @override
+  void didPopNext() {
+    _startTimer();
+  }
+
+  @override
+  void didPop() {
+    _refreshTimer?.cancel();
+  }
+
+  @override
+  void didPushNext() {
+    _refreshTimer?.cancel();
+  }
+
+  void _startTimer() {
+    _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 3),
       (_) => _loadPredictions(),
@@ -34,9 +65,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
   }
 
   @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadPredictions();
+    // 타이머는 RouteAware에서 관리
   }
 
   Future<void> _loadPredictions() async {
