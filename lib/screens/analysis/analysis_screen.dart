@@ -82,10 +82,32 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     return map;
   }
 
+  // 분석 데이터 전체 삭제 함수
+  Future<void> _clearAnalysisData() async {
+    await AnalysisStorageService().clear();
+    // Provider로 UI 갱신 알림
+    Provider.of<AnalysisPredictionProvider>(
+      context,
+      listen: false,
+    ).notifyUpdate();
+    // 또는 _loadAnalysis() 직접 호출해도 됨
+    // await _loadAnalysis();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('대화 분석'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('대화 분석'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            tooltip: '분석 데이터 전체 삭제',
+            onPressed: _clearAnalysisData,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child:

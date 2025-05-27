@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:capstone_porj/config/app_config.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:capstone_porj/providers/analysis_prediction_provider.dart';
 
 class PredictionScreen extends StatefulWidget {
   const PredictionScreen({Key? key}) : super(key: key);
@@ -69,10 +71,31 @@ class _PredictionScreenState extends State<PredictionScreen> {
     return map;
   }
 
+  // 예측 데이터 전체 삭제 함수
+  Future<void> _clearPredictionData() async {
+    await PredictionStorageService.clear();
+    Provider.of<AnalysisPredictionProvider>(
+      context,
+      listen: false,
+    ).notifyUpdate();
+    // 또는 _loadPredictions() 직접 호출해도 됨
+    // await _loadPredictions();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('호감도 예측'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('호감도 예측'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            tooltip: '예측 데이터 전체 삭제',
+            onPressed: _clearPredictionData,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child:

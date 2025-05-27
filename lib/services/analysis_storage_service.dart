@@ -48,6 +48,14 @@ class AnalysisStorageService {
     });
   }
 
+  // 분석 데이터 전체 삭제 함수 추가
+  Future<void> clear() async {
+    final file = await _getFile();
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
   Future<File> _getFile() async {
     final dir = await getApplicationDocumentsDirectory();
     return File('${dir.path}/$_fileName');
