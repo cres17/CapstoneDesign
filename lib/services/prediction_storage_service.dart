@@ -45,7 +45,11 @@ class PredictionStorageService {
     });
     list.insert(
       0,
-      jsonEncode({'date': date, 'partner': partner, 'isProcessing': true}),
+      jsonEncode({
+        'date': DateTime.now().toIso8601String(),
+        'partner': partner,
+        'isProcessing': true,
+      }),
     );
     await prefs.setStringList(_key, list);
   }

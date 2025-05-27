@@ -42,7 +42,7 @@ class AnalysisStorageService {
   // 분석 중 데이터 추가 함수
   Future<void> addProcessingAnalysis(String partner, String date) async {
     await saveAnalysis({
-      'date': date,
+      'date': DateTime.now().toIso8601String(),
       'partner': partner,
       'isProcessing': true,
     });

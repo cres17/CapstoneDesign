@@ -456,7 +456,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
       // 3. 분석 결과 저장
       final analysis = {
-        'date': DateTime.now().toIso8601String().substring(0, 10),
+        'date': DateTime.now().toIso8601String(),
         'partner': partnerName,
         'conversation': text,
         'summary': analysisResult,
@@ -490,7 +490,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return {
-          'date': DateTime.now().toIso8601String().substring(0, 10),
+          'date': DateTime.now().toIso8601String(),
           'partner': partnerName,
           'result': '${((data['score'] ?? 0.0) * 100).toStringAsFixed(0)}',
           'comment': 'AI가 분석한 매칭률입니다.',

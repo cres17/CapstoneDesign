@@ -189,10 +189,6 @@ class AnalysisCard extends StatelessWidget {
 
   String get formattedDate {
     try {
-      if (date.length <= 10) {
-        // 날짜만 있을 때
-        return date;
-      }
       final dt = DateTime.parse(date).toLocal();
       return DateFormat('yyyy-MM-dd HH:mm').format(dt);
     } catch (_) {
