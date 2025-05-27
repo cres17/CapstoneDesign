@@ -493,7 +493,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       final prefs = await SharedPreferences.getInstance();
       final gender = prefs.getString('gender') ?? 'male';
       final response = await http.post(
-        Uri.parse('http://172.30.136.49:5001/analyze'),
+        Uri.parse('http://172.30.37.234:5001/analyze'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'input_text': script, 'gender': gender}),
       );
