@@ -223,21 +223,6 @@ flutter pub add flutter_webrtc socket_io_client permission_handler path_provider
 flutter run
 ```
 
----
-
-## 📁 파일 구조 (AI 모델)
-
-```
-.
-├── soft_labeling.ipynb          # Soft Labeling 파이프라인
-├── classification-male.ipynb    # 남성 입장 분류 모델
-├── classification-female.ipynb  # 여성 입장 분류 모델
-├── model_train_male.ipynb       # 남성 입장 회귀 모델
-├── model_train_female.ipynb     # 여성 입장 회귀 모델
-└── 라벨값_시각화.ipynb           # 라벨 분포 시각화
-```
-
----
 
 ## 🤝 기여하기
 
