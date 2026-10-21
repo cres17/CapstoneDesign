@@ -1,273 +1,255 @@
-# 다온 — 대화와 호감도 분석 소개팅 앱
+# 다온 (Daon) - AI 기반 소개팅 어플리케이션
 
-Flutter 앱과 Node.js 서버, Python 모델 서버를 함께 사용하는 졸업 프로젝트입니다. 영상통화·얼굴 마스킹·채팅·대화 분석·호감도 예측·장소 추천 관련 코드를 포함합니다.
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
+![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat&logoColor=white&logo=dart)
+![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat&logoColor=white&logo=webrtc)
+![Google ML Kit](https://img.shields.io/badge/Google%20ML%20Kit-4285F4?style=flat&logoColor=white&logo=google)
+![Node.js](https://img.shields.io/badge/Node.js-5FA04E?style=flat&logoColor=white&logo=nodedotjs)
+![Express 5](https://img.shields.io/badge/Express%205-0A0A0A?style=flat&logoColor=white&logo=express)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat&logoColor=white&logo=socketdotio)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logoColor=white&logo=mysql)
+![CLOVA Speech](https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&logoColor=white&logo=naver)
+![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logoColor=white)
+![TourAPI](https://img.shields.io/badge/TourAPI-1F6F8B?style=flat&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logoColor=white&logo=pytorch)
+![Hugging Face Transformers](https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&logoColor=black&logo=huggingface)
+![Snorkel](https://img.shields.io/badge/Snorkel-5A4FCF?style=flat&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
+![Weights & Biases](https://img.shields.io/badge/Weights%20%26%20Biases-FFBE00?style=flat&logoColor=black&logo=weightsandbiases)
 
-현재 코드는 실습 환경의 서버 주소와 경로를 포함합니다. 앱 의존성만 설치하면 전체 기능이 바로 연결되는 형태는 아니며, 아래 서버·DB·외부 API 설정이 필요합니다.
+**다온**은 Flutter 기반의 AI 소개팅 어플리케이션입니다.  
+실시간 영상통화, 얼굴 마스킹, AI 대화 분석, **호감도 변화 예측**, 실시간 채팅, 데이트 장소 추천 기능을 제공합니다.
 
-## 아키텍처
+> 브랜치 안내: `main`에는 앱·Node 서버·모델 서버(`server/model_server.py`)가 있고, 영상통화 → 녹음 → STT → 대화 분석 → 호감도 예측까지 화면에 연결된 최종 발표 버전은 [`jmh`](https://github.com/cres17/CapstoneDesign/tree/jmh) 브랜치에 있습니다.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/architecture-dark.svg">
-  <img src="docs/assets/readme/architecture.svg" alt="다온 · Daon 주요 구성과 데이터 흐름" width="1200">
-</picture>
+---
 
-Flutter 앱은 Node 서버에 계정·매칭·채팅을 요청하고, Python 모델 서버에는 호감도 점수를 요청합니다. STT·대화 분석·장소 조회는 별도 외부 API를 사용합니다. 모델 연구 노트북과 현재 서빙 모델의 구성은 아래에서 따로 설명합니다.
+## 전체 아키텍처
 
-| 구성 | 역할 |
-|---|---|
-| Flutter | WebRTC 통화, 얼굴 마스킹, 녹음, 분석·예측 결과 화면 |
-| Node | Express·Socket.IO·MySQL을 통한 인증·매칭·메시지 처리 |
-| Python | W&B 모델을 내려받아 Flask /analyze에서 추론 |
-| 외부 API | Clova Speech 전사, OpenAI 분석, 관광 장소 조회 |
+<p align="center">
+  <img src="docs/assets/readme/architecture.svg" alt="다온 전체 아키텍처" width="100%">
+</p>
 
-<details>
-<summary>아키텍처 상세와 구현 경계</summary>
+| 구간 | 흐름 |
+|------|------|
+| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록 |
+| 영상통화 | 두 앱이 Socket.IO로 offer · answer · ICE candidate를 주고받은 뒤 WebRTC로 직접 영상 연결 |
+| 얼굴 마스킹 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처 → ML Kit 얼굴 감지 → 얼굴 위치에 마스크 이미지 오버레이 |
+| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기 `SharedPreferences`에 저장 |
+| 관계 단계 | 1단계 통화 → 양쪽 동의 시 2단계 사진 공개 → 양쪽 동의 시 3단계 데이트, 이때 `chat_rooms` 생성 |
+| 채팅 | Socket.IO `joinRoom` · `sendMessage`로 실시간 송수신, 메시지는 MySQL `chat_messages`에 저장 |
+| 장소 추천 | 앱이 내 위치(Geolocator)와 상대 위치의 중간 좌표로 TourAPI `locationBasedList1`을 직접 조회 |
 
-### 시스템 구성
+---
 
-```mermaid
-flowchart TD
-    A[Flutter 앱] -->|인증·매칭·채팅| B[Express·Socket.IO 서버]
-    B --> C[MySQL]
-    A -->|호감도 요청| D[Flask 모델 서버]
-    D --> E[W&B 모델 Artifact]
-    A -->|음성 파일| F[Clova Speech]
-    A -->|대화 텍스트| G[OpenAI API]
-    A -->|장소 조회| H[관광 API]
+## 주요 기능
+
+### 1. 실시간 영상통화 & 얼굴 마스킹
+- **WebRTC**(`flutter_webrtc`)로 실시간 영상통화 구현, 시그널링은 **Socket.IO** 서버가 중계
+- **Google ML Kit Face Detection**으로 상대 영상 프레임에서 얼굴 감지
+- **CustomPaint**와 **dart:ui**로 얼굴 위치에 마스크 이미지 오버레이
+- **RepaintBoundary**로 프레임 캡처, **path_provider**로 임시 파일 저장
+
+---
+
+### 2. AI 기반 대화 분석
+- 통화 음성을 `flutter_sound`로 녹음(AAC) → **네이버 CLOVA Speech API**로 STT(음성→텍스트, ko-KR 동기 처리)
+- 변환된 대화문을 **OpenAI Chat Completions API**로 전송해 세 기준으로 화자별 평가
+  - 적절한 주제 탐색 (협력의 원리, 상호 호혜적 의사소통의 원리)
+  - 자아 노출의 적정성 유지 (거리유지의 원칙)
+  - 경청과 협력적 반응 (협력의 원리, 공손성의 원리)
+- 응답은 항목·화자별 "잘 드러난 부분 / 아쉬운 부분" JSON으로 받아 카드 UI에 표시
+
+---
+
+### 3. 호감도 변화 예측 (Core AI)
+
+소개팅 대화에서 발화자의 **호감도 변화**를 텍스트만으로 예측하는 자체 AI 모델입니다.  
+공개 데이터셋이 없는 도메인에서 Weak Supervision 기반 Soft Labeling으로 라벨을 보완하고,  
+BiERU(양방향 GNTB) 구조로 대화 전후 맥락을 학습합니다. 학습 코드는 private 저장소 `likeability_expectation`에 있습니다.
+
+#### 성능
+
+| 구분 | 정확도 | F1 | MSE (회귀) | R² (회귀) |
+|------|-------|----|-----------|----------|
+| 남성 입장 호감도 | 0.607 | 0.756 | 0.056 | 0.587 |
+| 여성 입장 호감도 | 0.536 | 0.606 | 0.045 | 0.503 |
+
+> 실사용자 48명 대상 호감도 예측 기능 만족도: **4.22 / 5.0점**
+
+#### 모델 아키텍처
+
+<p align="center">
+  <img src="docs/assets/readme/model-architecture.svg" alt="호감도 예측 모델 아키텍처" width="100%">
+</p>
+
+모델은 네 단계로 나뉩니다. ① Soft Labeling으로 만든 연속 라벨을 ② BiERU 회귀 모델이 학습하고, ③ 이진 분류 모델은 원래의 하드 라벨로 별도 학습합니다. 분류와 회귀는 하나의 모델에서 나오는 이중 출력이 아니라 서로 다른 노트북의 별도 모델입니다. ④ 앱은 W&B에 올린 모델을 Flask 서버로 서빙해 사용합니다.
+
+**데이터 수집**
+- 연애 예능 프로그램 발화 수집 (조건: 남녀 1:1 대화 + 대화 후 인터뷰 호감도 응답)
+- 남성 입장 / 여성 입장 각각 `0(하락) / 0.5(유지) / 1(상승)` 하드 레이블 부여
+
+#### STEP 1. 라벨 스무딩 (Soft Labeling)
+
+`0 / 0.5 / 1` 이산값만으로는 호감 변화의 강도와 불확실성을 표현하기 어려워, 그래프 기반 라벨 전파로 `[0, 1]` 연속값을 만듭니다. (Pukdee et al., 2022의 weak supervision label propagation 구조)
+
+| 단계 | 함수 | 구현 내용 |
+|------|------|----------|
+| 발화 분리 | `preprocess_utterances` | `input_text`를 `남:` / `여:` 화자 단위로 나누고, 화자의 **상대 성별 라벨**을 발화별 weak prior로 부여. prior가 0 또는 1이면 hard seed |
+| 약한 지도 | `train_label_model` | seed 발화의 투표 행렬로 **Snorkel `LabelModel`**(cardinality 2, 200 epoch)을 학습. seed의 70%만 학습에 쓰고 나머지는 abstain 처리. 확률 분산의 역수로 샘플별 가중치 α 계산 |
+| 임베딩 | `get_embeddings` | `monologg/kobigbird-bert-base`의 CLS 벡터 (max_length 256, batch 8) |
+| 그래프 | `build_graph_with_dongles` | 코사인 유사도 `(cos+1)/2`로 k-NN(k=50) 연결. 레이블러별 dongle 노드(0·1)와 anchor 노드(0 · 0.5 · 1)를 추가하고 행 정규화 |
+| 전파 | `label_propagation` | `F ← (1−μ)·P·F + μ·Y`, μ=0.5, 변화량 1e-4 미만 또는 100회에서 종료 |
+| 저장 | `save_soft_labels_dual` | 발화별 `soft_label_male`, `soft_label_female`을 JSONL로 저장 |
+
+```python
+# label_propagation: 고정점 반복
+F = Y.copy()
+for _ in range(MAX_ITER):
+    F_new = (1 - mu) * (P @ F) + mu * Y
+    if np.linalg.norm(F_new - F) < EPSILON:
+        break
+    F = F_new
 ```
 
-영상통화는 앱의 WebRTC 스트림과 서버의 시그널링을 함께 사용합니다. 위 그림은 서비스 연결 관계이며, 별도 통합 배포 구성을 제공한다는 의미는 아닙니다.
+```
+Before:  0 ████  0.5 ██  1 ████   (3점 집중 이산 분포)
+After:   ░▒▓█████▓▒░▒▓██████▓░   (다봉 연속 분포)
+```
 
-</details>
+#### STEP 2. BiERU 회귀 — 양방향 GNTB 기반 맥락 학습
 
-## 기술 스택
+BiERU(Li et al., 2022)는 GNTB(Generalized Neural Tensor Block)를 대화 순서대로 순방향·역방향으로 적용해 앞뒤 발화의 영향을 함께 학습합니다. 구현은 `BiERULocal` 클래스입니다.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/tech-stack-dark.svg">
-  <img src="docs/assets/readme/tech-stack.svg" alt="다온 · Daon 기술 스택" width="1200">
-</picture>
+| 모듈 | 입력 → 출력 | 구현 내용 |
+|------|------------|----------|
+| `DialogueDataset` | 대화 1개 = 배치 1개 | `dialogue_id`로 발화를 묶고 현재 발화와 `context_left`, `context_right`를 각각 토큰화 (MAX_LEN 128) |
+| `TransformerEmbed` | 토큰 → 100차원 | KoBigBird 출력에 3·4·5-gram Conv1d(각 50채널) + max-pool, CLS 투영 + CNN adapter를 더해 평균 (gradient checkpointing 사용) |
+| `GNTB` | (이전 상태 100 ⊕ 발화 100) → 100 | slice 100개마다 저랭크 텐서 `m·(U·V)·mᵀ` (rank 10) + 대각항 + 선형항 + bias, tanh |
+| 양방향 순환 | 발화 시퀀스 | 같은 GNTB로 첫 발화부터 순방향, 마지막 발화부터 역방향 상태를 계산 |
+| `TFEModule` | 200 → 200 | 순·역방향 상태를 이어 LSTMCell(연속 감정 흐름)과 Conv1d 200채널(지역 패턴)에 통과시킨 뒤 투영 |
+| 회귀 헤드 | 400 → 1 | `[TFE 출력, 좌 발화 임베딩, 우 발화 임베딩]` → tanh → Linear |
 
-| 영역 | 기술 | 사용처 |
-|---|---|---|
-| 앱 | Flutter, Dart `^3.7.2` | 모바일 화면과 플랫폼 기능 연결 |
-| 상태·로컬 설정 | Provider, shared_preferences | 앱 상태와 로컬 설정 관리 |
-| 영상통화 | `flutter_webrtc` `^0.13.1+hotfix.1` | 실시간 영상·음성 스트림 |
-| 실시간 통신 | `socket_io_client` `^3.1.2`, 서버 Socket.IO `^4.8.1` | 시그널링·매칭·채팅 이벤트 |
-| 얼굴 마스킹 | Google ML Kit Face Detection, Flutter 그리기 | 얼굴 위치 검출과 마스크 표시 코드 |
-| 녹음·음성 인식 | FlutterSoundRecorder, Naver Clova Speech | 통화 음성 파일 생성과 STT 요청 |
-| 대화 분석 | OpenAI API, `http` | 전사한 대화의 분석 요청 |
-| 이미지·UI | image_picker, cached_network_image, flutter_svg, intl | 사진 선택·표시, SVG, 날짜·문자열 표현 |
-| 기기 기능 | permission_handler, path_provider | 권한 요청과 파일 경로 |
-| 앱 서버 | Node.js, Express `^5.1.0` | 인증·사용자·채팅 관련 HTTP API |
-| 인증 | bcryptjs, jsonwebtoken | 비밀번호 해시와 JWT 처리 |
-| DB·설정 | MySQL, mysql2, dotenv | 서버 데이터 저장과 환경변수 로드 |
-| 모델 서버 | Python, Flask, PyTorch, Transformers | 모델 적재와 호감도 점수 API |
-| 모델 관리 | Weights & Biases Artifacts | 관점별 모델 파일 다운로드 |
-| 장소 추천 | 한국관광공사 관광 API | 위치 기반 데이트 장소 조회 |
+```python
+# BiERULocal.forward 요약
+fwd = [gntb(None, uc[0])]
+for t in range(1, T):
+    fwd.append(gntb(fwd[-1], uc[t]))           # 순방향
+bwd = [gntb(None, uc[-1])]
+for t in reversed(range(T - 1)):
+    bwd.insert(0, gntb(bwd[0], uc[t]))         # 역방향
 
-버전은 [pubspec.yaml](pubspec.yaml)과 [server/package.json](server/package.json)의 선언 범위입니다. 얼굴 감지·녹음 등 일부 소스가 사용하는 패키지는 현재 pubspec 선언에서 빠져 있으므로 실행 준비 단계의 의존성 확인이 필요합니다.
+for t in range(T):
+    p_fb, (h, c) = tfe(torch.cat([fwd[t], bwd[t]], dim=1), (h, c))
+    p_cat = torch.tanh(torch.cat([p_fb, ul[t], ur[t]], dim=1))
+    preds.append(reg(p_cat).squeeze(-1))       # 발화별 점수
+```
 
-## 기능과 구성
+| 학습 설정 | 값 |
+|-----------|----|
+| 손실 | `MSELoss` — 좌·우 문맥이 모두 있는 발화만 반영 |
+| 옵티마이저 | Adam, lr 1e-5, weight decay 1e-3, `ReduceLROnPlateau`(factor 0.5, patience 1) |
+| 기타 | batch 1(대화 단위), epoch 10, dropout 0.5, AMP(`autocast`, `GradScaler`), 학습/검증 80:20 |
+| 평가·기록 | MSE, MAE, Pearson 상관, W&B Artifact(`bieru-model-soft_label-*`) |
 
-| 기능 | 주요 구현 |
-|---|---|
-| 영상통화와 신호 교환 | flutter_webrtc, Socket.IO |
-| 얼굴 감지와 마스크 표시 | Google ML Kit Face Detection, Flutter 그리기 |
-| 대화 음성 처리 | 녹음 서비스, Clova Speech 연동 |
-| 대화 분석 | OpenAI API 연동 |
-| 호감도 점수 요청 | Flutter PredictionService → Python Flask 서버 |
-| 로그인·매칭·채팅 | Express, Socket.IO, MySQL 관련 코드 |
-| 데이트 장소 | 관광 API 연동 화면과 위치 기반 추천 코드 |
+#### STEP 3. 이진 분류 — 호감 상승 여부
 
-구현 파일이 있다는 것과 실제 기기·서버·API가 연결된 상태에서 검증됐다는 것은 구분해야 합니다. 카메라·마이크·위치 권한과 네트워크 설정도 필요합니다.
+```python
+class KoBigBirdBinaryClassifier(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = AutoModel.from_pretrained("monologg/kobigbird-bert-base")
+        hidden = self.encoder.config.hidden_size
+        self.classifier = nn.Linear(hidden * 2, 1)
 
-## 기능별 구현
+    def forward(self, input_ids, attention_mask):
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        cls_emb = outputs.last_hidden_state[:, 0, :]
+        pooled  = torch.max(outputs.last_hidden_state, dim=1).values
+        combined = torch.cat([cls_emb, pooled], dim=-1)
+        return self.classifier(combined).squeeze(-1)
+```
 
-### 영상통화와 얼굴 마스킹
+- 입력: `target_utterance + " [SEP] " + dialogue_history`, KoBigBird의 긴 입력을 활용해 MAX_LEN 4096
+- 라벨: 관점별 하드 라벨이 0.5 초과면 1 (상승), 나머지 0
+- 학습: `BCEWithLogitsLoss`, AdamW lr 2e-5, batch 4, epoch 10, 학습/평가 80:20 (`random_state=42`)
+- 평가: sigmoid 후 0.5 임계값으로 Accuracy · F1 · 혼동행렬
 
-`flutter_webrtc`가 영상·음성 통신을 담당하고 [SignalingService](lib/services/signaling_service.dart)가 연결 신호를 교환합니다. [WebRTCFaceDetection](lib/services/webrtc_face_detection.dart)은 화면의 `RepaintBoundary`에서 프레임 이미지를 얻고 ML Kit FaceDetector로 얼굴을 찾는 코드입니다. 검출한 위치는 영상 위 마스크를 배치하는 데 사용합니다.
+#### STEP 4. 모델 서빙
 
-이 구조는 얼굴 검출과 화면 표시를 앱 쪽에서 수행합니다. 프레임 캡처·임시 이미지 저장·검출 주기가 기기 성능과 화면 좌표에 영향을 받으므로, 실제 영상통화의 마스크 위치와 처리 속도를 함께 확인해야 합니다.
+- 학습한 가중치를 **W&B Artifacts**로 버전 관리
+- `server/model_server.py`(Flask, 포트 5001)가 시작 시 `kobigbird-male-mlp-pearson`, `kobigbird-female-mlp-pearson`의 `latest` 아티팩트를 받아 `AutoModelForSequenceClassification`으로 로드
+- `POST /analyze` `{ input_text, gender }` → 성별에 맞는 모델로 추론(max_length 512) → sigmoid 점수 `{ score }` 반환
+- 앱은 점수 × 100을 "호감 지수"로 표시
 
-### 음성 인식과 대화 분석
+> 서빙 아티팩트는 Hugging Face 분류 모델 형식이며, 이를 만든 학습 노트북은 `likeability_expectation` 저장소에 포함되어 있지 않습니다. 위 STEP 2·3의 노트북은 `state_dict`를 저장합니다.
 
-1. [RecorderService](lib/services/recorder_service.dart)가 임시 경로에 `call_record.aac`를 녹음합니다.
-2. [ClovaSpeechService](lib/services/clova_speech_service.dart)가 녹음 파일을 Clova Speech에 보내 텍스트를 받습니다.
-3. [OpenAIService](lib/services/openai_service.dart)가 대화 텍스트의 분석을 요청합니다.
-4. [AnalysisStorageService](lib/services/analysis_storage_service.dart)와 분석 화면에서 결과를 보관·조회합니다.
+> 참고: Li, Wei, et al. *"BiERU: Bidirectional emotional recurrent unit for conversational sentiment analysis."* Neurocomputing 467 (2022)  
+> 참고: Pukdee, Rattana, et al. *"Label propagation with weak supervision."* arXiv:2210.03594 (2022)  
+> 참고: Matsuo, Kazuya, et al. *"Enhancing Impression Change Prediction in Speed Dating Simulations."* arXiv:2502.04706 (2025)
 
-STT, 외부 LLM 대화 분석, 자체 모델의 호감도 점수는 서로 다른 단계입니다. 각 단계의 입력·응답과 실패 여부를 나누어 확인할 수 있습니다.
+---
 
-### 호감도 변화 예측
+### 4. 실시간 채팅 기능
+- **Socket.IO** 기반의 1:1 채팅 및 채팅방 목록
+- 3단계(데이트)에 양쪽이 동의하면 서버가 채팅방을 생성
+- 메시지 실시간 송수신(`joinRoom`, `sendMessage`, `receiveMessage`), 대화 기록은 MySQL에 저장
 
-[PredictionService](lib/services/prediction_service.dart)가 대화와 관점을 모델 서버에 전달하고, 예측 화면이 결과를 표시합니다. 학습 연구는 Soft Labeling과 KoBigBird 분류·BiERU 회귀를 포함하며, 아래에서 연구 구조와 현재 서버가 실제로 읽는 모델을 구분해 설명합니다.
+---
 
-### 실시간 채팅·매칭·계정
+### 5. 데이트 장소 추천
+- 내 현재 위치(Geolocator)와 선택한 상대방 위치의 **중간 좌표**를 계산
+- **한국관광공사 TourAPI**(`KorService1/locationBasedList1`)로 반경 5km 내 장소 조회, 카드형 UI로 제공
 
-Socket.IO를 이용한 1:1 메시지 교환과 채팅방 처리를 포함합니다. [MatchingService](lib/services/matching_service.dart)는 상대 연결 흐름을, [AuthService](lib/services/auth_service.dart)는 로그인 등 인증 요청을 담당합니다. Node 서버에는 사용자 정보·인증·채팅 관련 MySQL 쿼리가 있습니다.
+---
 
-### 데이트 장소 추천
+### 6. 기타 기능
+- **회원가입/로그인**: 아이디·닉네임 중복 확인, bcrypt 비밀번호 해시, JWT 발급
+- **랜덤 매칭**: 서버에 접속한 사용자 중 무작위 연결, 없으면 대기 목록에 등록
+- **관계 단계**: 통화 → 사진 공개 → 데이트, 각 단계는 양쪽 동의가 모두 있어야 진행. 거절하면 상대 목록에서 삭제
+- **대화 분석/예측 결과 조회**: 카드형 UI, 상세 화면
+- **설정**: 주소 수정, 로그아웃, 회원탈퇴
 
-사용자 위치와 상대방 정보를 활용해 관광 API의 장소를 조회하고 카드 형태로 보여 주는 화면이 있습니다. 실행 환경의 위치 권한·API 설정과 두 사용자의 위치 데이터가 준비되어야 합니다.
+---
 
 ## 화면 구성
 
-| 화면 | 제공하는 흐름 | 코드 |
-|---|---|---|
-| 시작 | 앱 진입과 로그인·회원가입 이동 | [splash](lib/screens/splash) |
-| 회원가입·로그인 | 계정과 프로필 정보 입력, 인증 | [auth](lib/screens/auth) |
-| 메인 | 상대 연결 및 주요 메뉴 이동 | [main](lib/screens/main) |
-| 영상통화 | 영상 스트림과 마스크 표시 | [video_call](lib/screens/video_call) |
-| 대화 분석 | 분석 결과 카드와 상세 확인 | [analysis](lib/screens/analysis) |
-| 호감도 예측 | 관점별 예측 결과 확인 | [prediction](lib/screens/prediction) |
-| 장소 추천 | 위치 기반 추천 장소 카드 | [date_recommendation](lib/screens/date_recommendation) |
-| 채팅 | 채팅방과 실시간 메시지 | [chat](lib/screens/chat) |
-| 설정 | 사용자 정보와 계정 관련 설정 | [settings](lib/screens/settings) |
-| 통화 기록 | 통화 이력 조회 | [call_history_screen.dart](lib/screens/call_history_screen.dart) |
+- **시작 페이지**: 앱 소개, 로그인/회원가입 버튼
+- **회원가입 페이지**: 아이디, 비밀번호, 성별, 주소, 닉네임, 프로필 사진 입력
+- **로그인 페이지**: 아이디, 비밀번호 입력
+- **메인 페이지**: 하단 네비게이션(메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 네비게이션(대화 분석, 예측 결과)
+- **영상통화 페이지**: 얼굴 마스킹 적용된 영상통화
+- **대화분석 페이지**: 통화별 분석 결과 카드, 상세 화면
+- **호감도 예측 페이지**: 통화별 호감도 예측 결과 카드
+- **데이트 장소 추천 페이지**: 두 사람의 위치 기반 추천 장소 카드 UI
+- **채팅방 페이지**: 1:1 채팅, 채팅방 목록, 실시간 메시지
+- **설정 페이지**: 주소 수정, 로그아웃, 회원탈퇴
 
-## 학습 모델과 현재 서빙
+---
 
-학습 실험은 [likeability_expectation](https://github.com/cres17/likeability_expectation)에 있습니다. Soft Labeling, KoBigBird 이진 분류, GNTB·CNN·LSTM을 사용하는 BiERU 회귀는 별도의 실험입니다. 하나의 이중 출력 모델로 표현하지 않습니다.
+## 시작하기
 
-연계 연구의 세부 단계는 다음과 같습니다.
-
-| 단계 | 방법 | 구현 위치 |
-|---|---|---|
-| 라벨 보완 | KoBigBird 임베딩·코사인 유사도·Snorkel 확률·그래프 라벨 전파 | `likeability_expectation/soft_labeling.ipynb` |
-| 상승 여부 분류 | 현재 발화와 문맥 결합, KoBigBird CLS+max-pooling, Linear와 BCE 계열 손실 | `likeability_expectation/raw_code/classification_*.ipynb` |
-| 변화 정도 회귀 | 현재·인접 발화 임베딩, 양방향 GNTB, CNN·LSTMCell, Linear와 MSE 손실 | `likeability_expectation/model_train_*.ipynb` |
-| 실험 추적 | 손실·평가 지표·가중치 Artifact 기록 | 각 노트북의 W&B 코드 |
-
-분류 실험은 최대 4096토큰을 사용하지만 루트 회귀 노트북의 기본 `MAX_LEN`은 128입니다. 이전의 한 그림 안에서 분류·회귀가 동시에 나온다는 설명 대신, 각 실험의 입력 길이와 출력 목적을 따로 봅니다.
-
-현재 [server/model_server.py](server/model_server.py)의 실제 처리 순서는 다음과 같습니다.
-
-1. W&B에서 `kobigbird-male-mlp-pearson:latest`와 `kobigbird-female-mlp-pearson:latest` 아티팩트를 다운로드합니다.
-2. `AutoModelForSequenceClassification`과 `AutoTokenizer`로 적재합니다.
-3. `POST /analyze`의 `input_text`와 `gender`를 읽습니다.
-4. 입력을 최대 512토큰으로 잘라 추론하고 sigmoid 점수를 `score`로 반환합니다.
-
-이 서버 코드에는 BiERU 클래스를 직접 생성하는 경로가 없습니다. 학습 노트북의 모델을 배포하려면 클래스·가중치 저장 형식·토크나이저가 서버의 적재 방식과 맞는지 확인해야 합니다. W&B의 `latest`가 가리키는 실제 모델 버전도 별도로 고정해야 같은 결과를 재현할 수 있습니다.
-
-### 기존 프로젝트 보고 수치
-
-| 관점 | 분류 정확도 | 분류 F1 | 회귀 MSE | 회귀 R² |
-|---|---:|---:|---:|---:|
-| 남성 | 0.607 | 0.756 | 0.056 | 0.587 |
-| 여성 | 0.536 | 0.606 | 0.045 | 0.503 |
-
-기존 문서의 기록이며 현재 서버를 재실행하여 확인한 성능은 아닙니다. 평가 데이터 분할·실험 설정·모델 아티팩트를 연결해야 배포 모델의 성능과 비교할 수 있습니다. 사용자 48명의 기능 만족도 4.22/5.0 역시 설문 기록이며 모델 정확도와 다른 지표입니다.
-
-## 실행 준비
-
-### 1. 저장소와 Flutter 의존성
-
-`pubspec.yaml`의 Dart 조건은 `^3.7.2`입니다. 이 조건을 지원하는 Flutter와 사용할 플랫폼 SDK를 준비합니다.
-
+**1. 저장소 클론**
 ```bash
 git clone https://github.com/cres17/CapstoneDesign.git
 cd CapstoneDesign
-flutter pub get
 ```
 
-현재 소스에는 `google_mlkit_face_detection`, `flutter_sound`, `flutter_dotenv` 등을 import하는 파일이 있지만 이 패키지들은 pubspec의 직접 의존성에 없습니다. 필요한 기능을 실행하기 전에 import와 SDK 호환성을 확인해 누락된 의존성을 선언해야 합니다. `flutter pub get`은 이미 선언된 의존성을 설치하며 누락된 선언까지 보완하지는 않습니다.
-
-기존 프로젝트를 설치할 때 패키지 목록을 다시 `flutter pub add`로 추가할 필요는 없습니다.
-
-### 2. Node.js 서버와 MySQL
-
-Node.js·npm·MySQL을 준비합니다. [server/package.json](server/package.json)의 의존성을 설치합니다.
-
+**2. Node 서버** — `server/.env`에 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET` 설정 후
 ```bash
 cd server
 npm install
+node server.js
 ```
 
-현재 `server.js`는 `multer`를 사용하지만 server/package.json에는 선언되어 있지 않습니다. 서버를 실행하려면 검토한 버전의 multer를 추가로 설치하고 의존성에 반영해야 합니다.
-
-`server/.env`에 아래 환경변수를 설정합니다. 실제 값을 Git에 커밋하지 않습니다.
-
-```dotenv
-DB_HOST=127.0.0.1
-DB_USER=
-DB_PASSWORD=
-DB_DATABASE=
-JWT_SECRET=
-PORT=5000
-```
-
-MySQL 데이터베이스와 서버 쿼리에 필요한 테이블을 준비해야 합니다. [capstone_user_database/user.sql](capstone_user_database/user.sql)은 users 테이블 자료이며, [daon/users.sql](daon/users.sql)과 [user_database/user.sql](user_database/user.sql)은 SQL Server 형식입니다. 이 파일들을 모두 MySQL에 실행하는 설치 절차로 취급하면 안 됩니다. 현재 저장소에는 서버 전체 스키마를 한 번에 구성하는 통합 마이그레이션이 없습니다.
-
-프로필 업로드 경로도 `server.js`의 Windows 절대 경로를 실행 환경에 맞는 쓰기 가능한 폴더로 변경해야 합니다. 설정과 필요한 테이블 준비 후 server 폴더에서 실행합니다.
-
+**3. 모델 서버** — W&B 로그인 후
 ```bash
-npm start
+pip install flask torch transformers wandb
+python server/model_server.py
 ```
 
-기본 포트는 5000입니다.
-
-### 3. Python 호감도 모델 서버
-
-별도 터미널에서 server 폴더로 이동한 뒤 가상환경을 준비합니다.
-
+**4. Flutter 앱** — 화면 연결이 끝난 `jmh` 브랜치 기준(`git checkout jmh`). 루트 `.env`에 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`을 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install torch transformers flask wandb
-wandb login
-python model_server.py
-```
-
-Windows PowerShell의 활성화 명령은 `.venv\Scripts\Activate.ps1`입니다. torch는 사용하는 CPU/CUDA 환경에 맞춰 설치해야 합니다. 위 패키지는 코드의 직접 의존성이며, 검증된 버전 잠금 파일은 현재 없습니다.
-
-W&B 계정에서 코드에 지정된 프로젝트와 두 모델 아티팩트에 접근할 수 있어야 합니다. 아티팩트에는 Hugging Face 로더가 읽을 수 있는 모델·토크나이저 파일이 필요합니다. 접근 권한이나 파일 형식이 맞지 않으면 시작 단계에서 실패합니다. 기본 포트는 5001이며 현재 Flask 실행 설정은 개발용입니다.
-
-요청 형식:
-
-```json
-{
-  "input_text": "분석할 대화",
-  "gender": "male"
-}
-```
-
-`gender`는 `male` 또는 `female`을 사용합니다.
-
-### 4. 앱 주소와 외부 서비스 연결
-
-- [lib/config/app_config.dart](lib/config/app_config.dart)의 서버 IP·포트를 실제 Node 서버 주소로 바꿉니다.
-- [lib/services/prediction_service.dart](lib/services/prediction_service.dart)의 `http://<서버 IP>:5001/analyze`도 실제 모델 서버 주소로 바꿉니다. AppConfig만 수정해도 이 주소가 함께 바뀌지는 않습니다.
-- Clova Speech, OpenAI, 관광 API 관련 서비스·화면의 설정을 본인 계정 값으로 확인합니다. 모든 외부 키를 읽는 공통 환경 설정이 마련된 것은 아닙니다.
-- 기기에서 서버에 접근할 수 있는지, 카메라·마이크·위치 권한과 플랫폼 네트워크 설정이 맞는지 확인합니다.
-
-그다음 저장소 루트에서 실행합니다.
-
-```bash
+flutter pub get
 flutter run
 ```
-
-## 주요 경로
-
-| 경로 | 역할 |
-|---|---|
-| [lib/screens](lib/screens) | 로그인·영상통화·채팅·분석·추천 화면 |
-| [lib/services](lib/services) | 음성·분석·예측·인증·통신 서비스 |
-| [lib/config/app_config.dart](lib/config/app_config.dart) | 앱의 기본 서버 주소 |
-| [server/server.js](server/server.js) | Express·Socket.IO·MySQL 서버 |
-| [server/model_server.py](server/model_server.py) | W&B 모델 적재와 Flask 예측 API |
-| [pubspec.yaml](pubspec.yaml) | Flutter 의존성과 SDK 조건 |
-
-## 검증 범위
-
-설치 후 로그인·채팅·영상통화·STT·분석·예측을 순서대로 확인해야 합니다. 서버의 `npm test`는 현재 실제 테스트가 아니라 미구현 안내 후 실패하는 명령입니다. 전체 시스템의 자동 통합 테스트나 단일 배포 명령은 제공하지 않습니다.
-
-## 연구 참고 자료
-
-- Pukdee 외, *Label propagation with weak supervision*, arXiv:2210.03594 (2022): 약한 지도 신호와 그래프 라벨 전파 연구.
-- Li 외, *BiERU: Bidirectional emotional recurrent unit for conversational sentiment analysis*, Neurocomputing 467 (2022): 양방향 대화 감정 모델 연구.
-- Matsuo 외, *Enhancing Impression Change Prediction in Speed Dating Simulations Based on Speakers' Personalities*, arXiv:2502.04706 (2025): 대화에서 인상 변화 예측 연구.
-- [호감도 모델 연구 저장소](https://github.com/cres17/likeability_expectation): 학습 노트북과 세부 구조.
-
-## 기여
-
-오류 재현 환경과 관련 화면·서버를 함께 적어 이슈를 등록하거나 Pull Request를 보낼 수 있습니다. 앱 기능, 모델 학습, 모델 서빙 변경은 각각의 실행 경로와 검증 결과를 함께 설명해 주세요.
