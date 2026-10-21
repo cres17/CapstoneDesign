@@ -1,3 +1,5 @@
+<div align="center">
+
 # 다온 (Daon) - AI 기반 소개팅 어플리케이션
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
@@ -16,6 +18,8 @@
 ![Snorkel](https://img.shields.io/badge/Snorkel-5A4FCF?style=flat&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
 ![Weights & Biases](https://img.shields.io/badge/Weights%20%26%20Biases-FFBE00?style=flat&logoColor=black&logo=weightsandbiases)
+
+</div>
 
 **다온**은 Flutter 기반의 AI 소개팅 어플리케이션입니다.  
 실시간 영상통화, 얼굴 마스킹, AI 대화 분석, **호감도 변화 예측**, 실시간 채팅, 데이트 장소 추천 기능을 제공합니다.

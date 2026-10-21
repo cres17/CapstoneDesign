@@ -1,153 +1,154 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 1110" width="1460" height="1110" font-family="Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Noto Sans CJK KR', 'Malgun Gothic', sans-serif">
-<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#51627d"/></marker></defs>
-<rect x="0" y="0" width="1460" height="1110" rx="18" fill="#ffffff"/>
-<rect x="20" y="20" width="1420" height="250" rx="16" fill="#fdf8ee" stroke="#ead6a6" stroke-width="2"/>
-<text x="38" y="48" font-size="15" font-weight="700" fill="#8a6420" letter-spacing="0.3">① Soft Labeling  ·  soft_labeling.ipynb</text>
-<rect x="20" y="330" width="1420" height="340" rx="16" fill="#f2f7fb" stroke="#c4d5e6" stroke-width="2"/>
-<text x="180" y="358" font-size="15" font-weight="700" fill="#355a85" letter-spacing="0.3">② BiERU 회귀  ·  model_train_male / female.ipynb</text>
-<rect x="20" y="700" width="1420" height="190" rx="16" fill="#f6f2fa" stroke="#d7c8e8" stroke-width="2"/>
-<text x="38" y="728" font-size="15" font-weight="700" fill="#634a8c" letter-spacing="0.3">③ 이진 분류  ·  raw_code/classification_male / female.ipynb</text>
-<rect x="20" y="920" width="1420" height="170" rx="16" fill="#f6f7f9" stroke="#d5dae2" stroke-width="2"/>
-<text x="38" y="948" font-size="15" font-weight="700" fill="#4d5868" letter-spacing="0.3">④ 서빙  ·  CapstoneDesign/server/model_server.py</text>
-<path d="M230.0,150.0 L270.0,150.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M470.0,150.0 L510.0,150.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M710.0,150.0 L750.0,150.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M950.0,150.0 L990.0,150.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M1190.0,150.0 L1230.0,150.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M1330.0,198.0 L1330.0,300.0 L130.0,300.0 L130.0,432.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M230.0,480.0 L270.0,480.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M470.0,480.0 L490.0,480.0 L490.0,415.0 L510.0,415.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M470.0,480.0 L490.0,480.0 L490.0,545.0 L510.0,545.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M710.0,415.0 L730.0,415.0 L730.0,480.0 L750.0,480.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M710.0,545.0 L730.0,545.0 L730.0,480.0 L750.0,480.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M950.0,480.0 L990.0,480.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M1190.0,480.0 L1230.0,480.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M370.0,528.0 L370.0,640.0 L1090.0,640.0 L1090.0,528.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" stroke-dasharray="7 6" marker-end="url(#ah)"/>
-<path d="M230.0,800.0 L270.0,800.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M470.0,800.0 L510.0,800.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M710.0,800.0 L750.0,800.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M950.0,800.0 L990.0,800.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M1190.0,800.0 L1230.0,800.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M350.0,1010.0 L470.0,1010.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M810.0,1010.0 L920.0,1010.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<path d="M1100.0,1010.0 L1190.0,1010.0" fill="none" stroke="#51627d" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#ah)"/>
-<rect x="30.0" y="102.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
-<rect x="30.0" y="102.0" width="6" height="96" rx="3" fill="#8a6420"/>
-<text x="130" y="139.0" text-anchor="middle" font-size="17" font-weight="700" fill="#8a6420">원시 대화</text>
-<text x="130" y="159.0" text-anchor="middle" font-size="13" fill="#5b6574">dialogues_human.jsonl</text>
-<text x="130" y="176.0" text-anchor="middle" font-size="13" fill="#5b6574">라벨 0 · 0.5 · 1</text>
-<rect x="270.0" y="102.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
-<rect x="270.0" y="102.0" width="6" height="96" rx="3" fill="#8a6420"/>
-<text x="370" y="139.0" text-anchor="middle" font-size="17" font-weight="700" fill="#8a6420">발화 분리</text>
-<text x="370" y="159.0" text-anchor="middle" font-size="13" fill="#5b6574">상대 성별 라벨을</text>
-<text x="370" y="176.0" text-anchor="middle" font-size="13" fill="#5b6574">발화별 weak prior로</text>
-<rect x="510.0" y="102.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
-<rect x="510.0" y="102.0" width="6" height="96" rx="3" fill="#8a6420"/>
-<text x="610" y="139.0" text-anchor="middle" font-size="17" font-weight="700" fill="#8a6420">Snorkel LabelModel</text>
-<text x="610" y="159.0" text-anchor="middle" font-size="13" fill="#5b6574">0·1 seed 70%로 학습</text>
-<text x="610" y="176.0" text-anchor="middle" font-size="13" fill="#5b6574">확률 · α 가중치</text>
-<rect x="750.0" y="102.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
-<rect x="750.0" y="102.0" width="6" height="96" rx="3" fill="#8a6420"/>
-<text x="850" y="139.0" text-anchor="middle" font-size="17" font-weight="700" fill="#8a6420">KoBigBird 임베딩</text>
-<text x="850" y="159.0" text-anchor="middle" font-size="13" fill="#5b6574">CLS 벡터</text>
-<text x="850" y="176.0" text-anchor="middle" font-size="13" fill="#5b6574">max_length 256</text>
-<rect x="990.0" y="102.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
-<rect x="990.0" y="102.0" width="6" height="96" rx="3" fill="#8a6420"/>
-<text x="1090" y="139.0" text-anchor="middle" font-size="17" font-weight="700" fill="#8a6420">k-NN 그래프</text>
-<text x="1090" y="159.0" text-anchor="middle" font-size="13" fill="#5b6574">k=50 · dongle 노드</text>
-<text x="1090" y="176.0" text-anchor="middle" font-size="13" fill="#5b6574">anchor 0 · 0.5 · 1</text>
-<rect x="1230.0" y="102.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
-<rect x="1230.0" y="102.0" width="6" height="96" rx="3" fill="#8a6420"/>
-<text x="1330" y="139.0" text-anchor="middle" font-size="17" font-weight="700" fill="#8a6420">Label Propagation</text>
-<text x="1330" y="159.0" text-anchor="middle" font-size="13" fill="#5b6574">F ← (1−μ)PF + μY</text>
-<text x="1330" y="176.0" text-anchor="middle" font-size="13" fill="#5b6574">μ=0.5 · 최대 100회</text>
-<rect x="30.0" y="432.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="30.0" y="432.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="130" y="469.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">대화 단위 입력</text>
-<text x="130" y="489.0" text-anchor="middle" font-size="13" fill="#5b6574">좌 · 현재 · 우 발화</text>
-<text x="130" y="506.0" text-anchor="middle" font-size="13" fill="#5b6574">MAX_LEN 128</text>
-<rect x="270.0" y="432.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="270.0" y="432.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="370" y="469.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">TransformerEmbed</text>
-<text x="370" y="489.0" text-anchor="middle" font-size="13" fill="#5b6574">KoBigBird + 3·4·5-gram</text>
-<text x="370" y="506.0" text-anchor="middle" font-size="13" fill="#5b6574">CNN + CLS adapter</text>
-<rect x="510.0" y="367.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="510.0" y="367.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="610" y="404.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">순방향 GNTB</text>
-<text x="610" y="424.0" text-anchor="middle" font-size="13" fill="#5b6574">이전 상태 ⊕ 현재 발화</text>
-<text x="610" y="441.0" text-anchor="middle" font-size="13" fill="#5b6574">rank 10 · slice 100</text>
-<rect x="510.0" y="497.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="510.0" y="497.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="610" y="534.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">역방향 GNTB</text>
-<text x="610" y="554.0" text-anchor="middle" font-size="13" fill="#5b6574">다음 상태 ⊕ 현재 발화</text>
-<text x="610" y="571.0" text-anchor="middle" font-size="13" fill="#5b6574">같은 GNTB 가중치</text>
-<rect x="750.0" y="432.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="750.0" y="432.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="850" y="469.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">TFEModule</text>
-<text x="850" y="489.0" text-anchor="middle" font-size="13" fill="#5b6574">LSTMCell + CNN 200ch</text>
-<text x="850" y="506.0" text-anchor="middle" font-size="13" fill="#5b6574">→ 200차원</text>
-<rect x="990.0" y="432.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="990.0" y="432.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="1090" y="469.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">결합 · tanh</text>
-<text x="1090" y="489.0" text-anchor="middle" font-size="13" fill="#5b6574">TFE ⊕ 좌 ⊕ 우 발화</text>
-<text x="1090" y="506.0" text-anchor="middle" font-size="13" fill="#5b6574">→ 400차원</text>
-<rect x="1230.0" y="432.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
-<rect x="1230.0" y="432.0" width="6" height="96" rx="3" fill="#355a85"/>
-<text x="1330" y="469.0" text-anchor="middle" font-size="17" font-weight="700" fill="#355a85">Linear 회귀</text>
-<text x="1330" y="489.0" text-anchor="middle" font-size="13" fill="#5b6574">발화별 점수 1개</text>
-<text x="1330" y="506.0" text-anchor="middle" font-size="13" fill="#5b6574">MSELoss</text>
-<rect x="30.0" y="752.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
-<rect x="30.0" y="752.0" width="6" height="96" rx="3" fill="#634a8c"/>
-<text x="130" y="789.0" text-anchor="middle" font-size="17" font-weight="700" fill="#634a8c">입력 텍스트</text>
-<text x="130" y="809.0" text-anchor="middle" font-size="13" fill="#5b6574">target [SEP] history</text>
-<text x="130" y="826.0" text-anchor="middle" font-size="13" fill="#5b6574">MAX_LEN 4096</text>
-<rect x="270.0" y="752.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
-<rect x="270.0" y="752.0" width="6" height="96" rx="3" fill="#634a8c"/>
-<text x="370" y="789.0" text-anchor="middle" font-size="17" font-weight="700" fill="#634a8c">KoBigBird</text>
-<text x="370" y="809.0" text-anchor="middle" font-size="13" fill="#5b6574">kobigbird-bert-base</text>
-<text x="370" y="826.0" text-anchor="middle" font-size="13" fill="#5b6574">last_hidden_state</text>
-<rect x="510.0" y="752.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
-<rect x="510.0" y="752.0" width="6" height="96" rx="3" fill="#634a8c"/>
-<text x="610" y="789.0" text-anchor="middle" font-size="17" font-weight="700" fill="#634a8c">CLS ⊕ max-pool</text>
-<text x="610" y="809.0" text-anchor="middle" font-size="13" fill="#5b6574">768 + 768</text>
-<text x="610" y="826.0" text-anchor="middle" font-size="13" fill="#5b6574">→ 1536차원</text>
-<rect x="750.0" y="752.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
-<rect x="750.0" y="752.0" width="6" height="96" rx="3" fill="#634a8c"/>
-<text x="850" y="797.5" text-anchor="middle" font-size="17" font-weight="700" fill="#634a8c">Linear</text>
-<text x="850" y="817.5" text-anchor="middle" font-size="13" fill="#5b6574">logit 1개</text>
-<rect x="990.0" y="752.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
-<rect x="990.0" y="752.0" width="6" height="96" rx="3" fill="#634a8c"/>
-<text x="1090" y="789.0" text-anchor="middle" font-size="17" font-weight="700" fill="#634a8c">BCEWithLogitsLoss</text>
-<text x="1090" y="809.0" text-anchor="middle" font-size="13" fill="#5b6574">label &gt; 0.5 → 1</text>
-<text x="1090" y="826.0" text-anchor="middle" font-size="13" fill="#5b6574">AdamW 2e-5</text>
-<rect x="1230.0" y="752.0" width="200" height="96" rx="12" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
-<rect x="1230.0" y="752.0" width="6" height="96" rx="3" fill="#634a8c"/>
-<svg x="1249.0" y="785.0" width="30" height="30" viewBox="0 0 24 24"><path d="M2.529 3.269c.868 0 1.563-.692 1.563-1.556S3.397.156 2.529.156C1.66.156.966.848.966 1.713c0 .864.694 1.556 1.563 1.556m.551 7.034c1.332-.317 2.17-1.643 1.853-2.968-.319-1.326-1.65-2.162-2.982-1.845C.62 5.807-.219 7.133.1 8.46a2.463 2.463 0 0 0 2.981 1.844M3.08 22.668c1.332-.318 2.17-1.643 1.853-2.97a2.486 2.486 0 0 0-2.982-1.844C.62 18.171-.219 19.497.1 20.823s1.65 2.162 2.981 1.845m.986-8.591c0-.865-.695-1.556-1.563-1.556-.869 0-1.563.691-1.563 1.556 0 .864.694 1.556 1.563 1.556.868 0 1.563-.691 1.563-1.556m7.988-.172a2.484 2.484 0 0 0-2.489 2.479c0 1.354 1.1 2.479 2.49 2.479a2.485 2.485 0 0 0 2.489-2.48c-.03-1.382-1.13-2.478-2.49-2.478m0 7.089c-.868 0-1.563.692-1.563 1.557 0 .864.695 1.556 1.563 1.556.869 0 1.563-.692 1.563-1.556-.029-.865-.723-1.557-1.563-1.557m0-9.251c.869 0 1.563-.692 1.563-1.557 0-.864-.694-1.556-1.563-1.556-.868 0-1.563.692-1.563 1.556s.695 1.557 1.563 1.557m.23-6.196c.84-.144 1.418-.922 1.273-1.758-.144-.836-.926-1.412-1.765-1.268-.84.144-1.419.922-1.274 1.758s.926 1.384 1.766 1.268m11.03 4.093a2.48 2.48 0 0 0 0-3.487c-.955-.951-2.547-.951-3.502 0a2.48 2.48 0 0 0 0 3.487c.955.98 2.547.98 3.502 0m-1.737-6.371c.868 0 1.563-.692 1.563-1.556S22.446.156 21.578.156c-.869 0-1.563.692-1.563 1.557 0 .864.694 1.556 1.563 1.556m0 9.281c-.869 0-1.563.692-1.563 1.556s.694 1.557 1.563 1.557c.868 0 1.563-.692 1.563-1.557-.03-.864-.724-1.556-1.563-1.556m0 6.169c-.869 0-1.563.691-1.563 1.556s.694 1.556 1.563 1.556c.868 0 1.563-.691 1.563-1.556-.03-.864-.724-1.556-1.563-1.556" fill="#fcbc32"></path></svg>
-<text x="1346" y="789.0" text-anchor="middle" font-size="17" font-weight="700" fill="#634a8c">W&amp;B Artifact</text>
-<text x="1346" y="809.0" text-anchor="middle" font-size="13" fill="#5b6574">state_dict 업로드</text>
-<text x="1346" y="826.0" text-anchor="middle" font-size="13" fill="#5b6574">(회귀 모델도 동일)</text>
-<rect x="30.0" y="962.0" width="320" height="96" rx="12" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
-<rect x="30.0" y="962.0" width="6" height="96" rx="3" fill="#4d5868"/>
-<svg x="49.0" y="995.0" width="30" height="30" viewBox="0 0 24 24"><path d="M2.529 3.269c.868 0 1.563-.692 1.563-1.556S3.397.156 2.529.156C1.66.156.966.848.966 1.713c0 .864.694 1.556 1.563 1.556m.551 7.034c1.332-.317 2.17-1.643 1.853-2.968-.319-1.326-1.65-2.162-2.982-1.845C.62 5.807-.219 7.133.1 8.46a2.463 2.463 0 0 0 2.981 1.844M3.08 22.668c1.332-.318 2.17-1.643 1.853-2.97a2.486 2.486 0 0 0-2.982-1.844C.62 18.171-.219 19.497.1 20.823s1.65 2.162 2.981 1.845m.986-8.591c0-.865-.695-1.556-1.563-1.556-.869 0-1.563.691-1.563 1.556 0 .864.694 1.556 1.563 1.556.868 0 1.563-.691 1.563-1.556m7.988-.172a2.484 2.484 0 0 0-2.489 2.479c0 1.354 1.1 2.479 2.49 2.479a2.485 2.485 0 0 0 2.489-2.48c-.03-1.382-1.13-2.478-2.49-2.478m0 7.089c-.868 0-1.563.692-1.563 1.557 0 .864.695 1.556 1.563 1.556.869 0 1.563-.692 1.563-1.556-.029-.865-.723-1.557-1.563-1.557m0-9.251c.869 0 1.563-.692 1.563-1.557 0-.864-.694-1.556-1.563-1.556-.868 0-1.563.692-1.563 1.556s.695 1.557 1.563 1.557m.23-6.196c.84-.144 1.418-.922 1.273-1.758-.144-.836-.926-1.412-1.765-1.268-.84.144-1.419.922-1.274 1.758s.926 1.384 1.766 1.268m11.03 4.093a2.48 2.48 0 0 0 0-3.487c-.955-.951-2.547-.951-3.502 0a2.48 2.48 0 0 0 0 3.487c.955.98 2.547.98 3.502 0m-1.737-6.371c.868 0 1.563-.692 1.563-1.556S22.446.156 21.578.156c-.869 0-1.563.692-1.563 1.557 0 .864.694 1.556 1.563 1.556m0 9.281c-.869 0-1.563.692-1.563 1.556s.694 1.557 1.563 1.557c.868 0 1.563-.692 1.563-1.557-.03-.864-.724-1.556-1.563-1.556m0 6.169c-.869 0-1.563.691-1.563 1.556s.694 1.556 1.563 1.556c.868 0 1.563-.691 1.563-1.556-.03-.864-.724-1.556-1.563-1.556" fill="#fcbc32"></path></svg>
-<text x="206" y="999.0" text-anchor="middle" font-size="17" font-weight="700" fill="#4d5868">W&amp;B Artifact</text>
-<text x="206" y="1019.0" text-anchor="middle" font-size="13" fill="#5b6574">kobigbird-male / female</text>
-<text x="206" y="1036.0" text-anchor="middle" font-size="13" fill="#5b6574">-mlp-pearson:latest</text>
-<rect x="470.0" y="962.0" width="340" height="96" rx="12" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
-<rect x="470.0" y="962.0" width="6" height="96" rx="3" fill="#4d5868"/>
-<text x="640" y="999.0" text-anchor="middle" font-size="17" font-weight="700" fill="#4d5868">Hugging Face 분류 모델</text>
-<text x="640" y="1019.0" text-anchor="middle" font-size="13" fill="#5b6574">AutoModelForSequenceClassification</text>
-<text x="640" y="1036.0" text-anchor="middle" font-size="13" fill="#5b6574">max_length 512 · 남/여 모델 선택</text>
-<rect x="920.0" y="962.0" width="180" height="96" rx="12" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
-<rect x="920.0" y="962.0" width="6" height="96" rx="3" fill="#4d5868"/>
-<text x="1010" y="1007.5" text-anchor="middle" font-size="17" font-weight="700" fill="#4d5868">sigmoid</text>
-<text x="1010" y="1027.5" text-anchor="middle" font-size="13" fill="#5b6574">logit → 0~1</text>
-<rect x="1190.0" y="962.0" width="220" height="96" rx="12" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
-<rect x="1190.0" y="962.0" width="6" height="96" rx="3" fill="#4d5868"/>
-<g transform="translate(1209.0,995.0) scale(1.2500)"><path d="M10.773 2.878c-.013 1.434.322 4.624.445 5.734l-8.558 3.83c-.56-.959-.98-2.304-1.237-3.38l-.06.027c-.205.09-.406.053-.494-.088l-.011-.018-.82-1.506c-.058-.105-.05-.252.024-.392a.78.78 0 0 1 .358-.331l9.824-4.207c.146-.064.299-.063.4.004.106.062.127.128.13.327Zm.68 7c.523 1.97.675 2.412.832 2.818l-7.263 3.7a19.35 19.35 0 0 1-1.81-2.83l8.24-3.689Zm12.432 8.786h.003c.283.402-.047.657-.153.698l-.947.37c.037.125.035.319-.217.414l-.736.287c-.229.09-.398-.059-.42-.2l-.025-.125c-4.427 1.784-7.94 1.685-10.696.647-1.981-.745-3.576-1.983-4.846-3.379l6.948-3.54c.721 1.431 1.586 2.454 2.509 3.178 2.086 1.638 4.415 1.712 5.793 1.563l-.047-.233c-.015-.077.007-.135.086-.165l.734-.288a.302.302 0 0 1 .342.086l.748-.288a.306.306 0 0 1 .341.086l.583.89Z" fill="#3BABC3"/></g>
-<text x="1316" y="1007.5" text-anchor="middle" font-size="17" font-weight="700" fill="#4d5868">POST /analyze</text>
-<text x="1316" y="1027.5" text-anchor="middle" font-size="13" fill="#5b6574">{ score }</text>
-<text x="730.0" y="292.0" text-anchor="middle" font-size="14.5" fill="#ffffff" stroke="#ffffff" stroke-width="6" stroke-linejoin="round">soft_label_male / female (JSONL)</text>
-<text x="730.0" y="292.0" text-anchor="middle" font-size="14.5" fill="#51627d">soft_label_male / female (JSONL)</text>
-<text x="730.0" y="632.0" text-anchor="middle" font-size="14.5" fill="#ffffff" stroke="#ffffff" stroke-width="6" stroke-linejoin="round">좌 · 우 발화 임베딩</text>
-<text x="730.0" y="632.0" text-anchor="middle" font-size="14.5" fill="#51627d">좌 · 우 발화 임베딩</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-43 -44 1203 1790" width="1203" height="1790" font-family="Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Noto Sans CJK KR', 'Malgun Gothic', sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#51627d"/></marker></defs>
+<rect x="-43" y="-44" width="1203" height="1790" rx="20" fill="#ffffff"/>
+<rect x="-16.6" y="-18.5" width="1150.6" height="395.0" rx="18" fill="#fdf8ee" stroke="#ead6a6" stroke-width="2"/>
+<text x="5.4" y="19.5" font-size="22" font-weight="700" fill="#8a6420">① Soft Labeling · soft_labeling.ipynb</text>
+<rect x="-16.6" y="416.5" width="1150.6" height="520.0" rx="18" fill="#f2f7fb" stroke="#c4d5e6" stroke-width="2"/>
+<text x="233.4" y="454.5" font-size="22" font-weight="700" fill="#355a85">② BiERU 회귀 · model_train_male / female.ipynb</text>
+<rect x="-16.6" y="956.5" width="1150.6" height="365.0" rx="18" fill="#f6f2fa" stroke="#d7c8e8" stroke-width="2"/>
+<text x="5.4" y="994.5" font-size="22" font-weight="700" fill="#634a8c">③ 이진 분류 · classification_male / female.ipynb</text>
+<rect x="-16.6" y="1361.5" width="1150.6" height="358.5" rx="18" fill="#f6f7f9" stroke="#d5dae2" stroke-width="2"/>
+<text x="5.4" y="1399.5" font-size="22" font-weight="700" fill="#4d5868">④ 서빙 · CapstoneDesign/server/model_server.py</text>
+<path d="M340.0,110.0 L400.0,110.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M720.0,110.0 L780.0,110.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M940.0,166.5 L940.0,233.5" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M780.0,290.0 L720.0,290.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M400.0,290.0 L340.0,290.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M180.0,346.5 L180.0,558.5" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M340.0,615.0 L400.0,615.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M720.0,615.0 L750.0,615.0 L750.0,545.0 L780.0,545.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M720.0,615.0 L750.0,615.0 L750.0,685.0 L780.0,685.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M1100.0,545.0 L1122.0,545.0 L1122.0,850.0 L1100.0,850.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M940.0,741.5 L940.0,793.5" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M780.0,850.0 L720.0,850.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M400.0,850.0 L340.0,850.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M560.0,671.5 L560.0,793.5" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#ah)"/>
+<path d="M340.0,1085.0 L400.0,1085.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M720.0,1085.0 L780.0,1085.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M940.0,1141.5 L940.0,1185.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M780.0,1235.0 L720.0,1235.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M400.0,1235.0 L340.0,1235.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M342.6,1490.0 L400.0,1490.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M720.0,1490.0 L780.0,1490.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<path d="M940.0,1546.5 L940.0,1590.0" fill="none" stroke="#51627d" stroke-width="2.6" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="20.0" y="53.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
+<rect x="20.0" y="53.5" width="7" height="113.0" rx="3.5" fill="#8a6420"/>
+<text x="183.0" y="91.0" text-anchor="middle" font-size="25" font-weight="700" fill="#8a6420">원시 대화</text>
+<text x="183.0" y="120.0" text-anchor="middle" font-size="20" fill="#4f5a69">dialogues_human.jsonl</text>
+<text x="183.0" y="147.0" text-anchor="middle" font-size="20" fill="#4f5a69">라벨 0 · 0.5 · 1</text>
+<rect x="400.0" y="53.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
+<rect x="400.0" y="53.5" width="7" height="113.0" rx="3.5" fill="#8a6420"/>
+<text x="563.0" y="91.0" text-anchor="middle" font-size="25" font-weight="700" fill="#8a6420">발화 분리</text>
+<text x="563.0" y="120.0" text-anchor="middle" font-size="20" fill="#4f5a69">상대 성별 라벨을</text>
+<text x="563.0" y="147.0" text-anchor="middle" font-size="20" fill="#4f5a69">발화별 weak prior로</text>
+<rect x="780.0" y="53.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
+<rect x="780.0" y="53.5" width="7" height="113.0" rx="3.5" fill="#8a6420"/>
+<text x="943.0" y="91.0" text-anchor="middle" font-size="25" font-weight="700" fill="#8a6420">Snorkel LabelModel</text>
+<text x="943.0" y="120.0" text-anchor="middle" font-size="20" fill="#4f5a69">seed 70%로 학습</text>
+<text x="943.0" y="147.0" text-anchor="middle" font-size="20" fill="#4f5a69">확률 · α 가중치</text>
+<rect x="780.0" y="233.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
+<rect x="780.0" y="233.5" width="7" height="113.0" rx="3.5" fill="#8a6420"/>
+<text x="943.0" y="271.0" text-anchor="middle" font-size="25" font-weight="700" fill="#8a6420">KoBigBird 임베딩</text>
+<text x="943.0" y="300.0" text-anchor="middle" font-size="20" fill="#4f5a69">CLS 벡터</text>
+<text x="943.0" y="327.0" text-anchor="middle" font-size="20" fill="#4f5a69">max_length 256</text>
+<rect x="400.0" y="233.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
+<rect x="400.0" y="233.5" width="7" height="113.0" rx="3.5" fill="#8a6420"/>
+<text x="563.0" y="271.0" text-anchor="middle" font-size="25" font-weight="700" fill="#8a6420">k-NN 그래프</text>
+<text x="563.0" y="300.0" text-anchor="middle" font-size="20" fill="#4f5a69">k=50 · dongle 노드</text>
+<text x="563.0" y="327.0" text-anchor="middle" font-size="20" fill="#4f5a69">anchor 0 · 0.5 · 1</text>
+<rect x="20.0" y="233.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#ead6a6" stroke-width="2"/>
+<rect x="20.0" y="233.5" width="7" height="113.0" rx="3.5" fill="#8a6420"/>
+<text x="183.0" y="271.0" text-anchor="middle" font-size="25" font-weight="700" fill="#8a6420">Label Propagation</text>
+<text x="183.0" y="300.0" text-anchor="middle" font-size="20" fill="#4f5a69">F ← (1−μ)PF + μY</text>
+<text x="183.0" y="327.0" text-anchor="middle" font-size="20" fill="#4f5a69">μ=0.5 · 최대 100회</text>
+<rect x="20.0" y="558.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="20.0" y="558.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="183.0" y="596.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">대화 단위 입력</text>
+<text x="183.0" y="625.0" text-anchor="middle" font-size="20" fill="#4f5a69">좌 · 현재 · 우 발화</text>
+<text x="183.0" y="652.0" text-anchor="middle" font-size="20" fill="#4f5a69">MAX_LEN 128</text>
+<rect x="400.0" y="558.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="400.0" y="558.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="563.0" y="596.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">TransformerEmbed</text>
+<text x="563.0" y="625.0" text-anchor="middle" font-size="20" fill="#4f5a69">KoBigBird + n-gram CNN</text>
+<text x="563.0" y="652.0" text-anchor="middle" font-size="20" fill="#4f5a69">+ CLS adapter → 100d</text>
+<rect x="780.0" y="488.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="780.0" y="488.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="943.0" y="526.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">순방향 GNTB</text>
+<text x="943.0" y="555.0" text-anchor="middle" font-size="20" fill="#4f5a69">이전 상태 ⊕ 현재 발화</text>
+<text x="943.0" y="582.0" text-anchor="middle" font-size="20" fill="#4f5a69">rank 10 · slice 100</text>
+<rect x="780.0" y="628.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="780.0" y="628.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="943.0" y="666.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">역방향 GNTB</text>
+<text x="943.0" y="695.0" text-anchor="middle" font-size="20" fill="#4f5a69">다음 상태 ⊕ 현재 발화</text>
+<text x="943.0" y="722.0" text-anchor="middle" font-size="20" fill="#4f5a69">같은 GNTB 가중치</text>
+<rect x="780.0" y="793.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="780.0" y="793.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="943.0" y="831.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">TFEModule</text>
+<text x="943.0" y="860.0" text-anchor="middle" font-size="20" fill="#4f5a69">LSTMCell + CNN 200ch</text>
+<text x="943.0" y="887.0" text-anchor="middle" font-size="20" fill="#4f5a69">→ 200차원</text>
+<rect x="400.0" y="793.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="400.0" y="793.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="563.0" y="831.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">결합 · tanh</text>
+<text x="563.0" y="860.0" text-anchor="middle" font-size="20" fill="#4f5a69">TFE ⊕ 좌 ⊕ 우 발화</text>
+<text x="563.0" y="887.0" text-anchor="middle" font-size="20" fill="#4f5a69">→ 400차원</text>
+<rect x="20.0" y="793.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#c4d5e6" stroke-width="2"/>
+<rect x="20.0" y="793.5" width="7" height="113.0" rx="3.5" fill="#355a85"/>
+<text x="183.0" y="831.0" text-anchor="middle" font-size="25" font-weight="700" fill="#355a85">Linear 회귀</text>
+<text x="183.0" y="860.0" text-anchor="middle" font-size="20" fill="#4f5a69">발화별 점수 1개</text>
+<text x="183.0" y="887.0" text-anchor="middle" font-size="20" fill="#4f5a69">MSELoss</text>
+<rect x="20.0" y="1028.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
+<rect x="20.0" y="1028.5" width="7" height="113.0" rx="3.5" fill="#634a8c"/>
+<text x="183.0" y="1066.0" text-anchor="middle" font-size="25" font-weight="700" fill="#634a8c">입력 텍스트</text>
+<text x="183.0" y="1095.0" text-anchor="middle" font-size="20" fill="#4f5a69">target [SEP] history</text>
+<text x="183.0" y="1122.0" text-anchor="middle" font-size="20" fill="#4f5a69">MAX_LEN 4096</text>
+<rect x="400.0" y="1028.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
+<rect x="400.0" y="1028.5" width="7" height="113.0" rx="3.5" fill="#634a8c"/>
+<text x="563.0" y="1066.0" text-anchor="middle" font-size="25" font-weight="700" fill="#634a8c">KoBigBird</text>
+<text x="563.0" y="1095.0" text-anchor="middle" font-size="20" fill="#4f5a69">kobigbird-bert-base</text>
+<text x="563.0" y="1122.0" text-anchor="middle" font-size="20" fill="#4f5a69">last_hidden_state</text>
+<rect x="780.0" y="1028.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
+<rect x="780.0" y="1028.5" width="7" height="113.0" rx="3.5" fill="#634a8c"/>
+<text x="943.0" y="1066.0" text-anchor="middle" font-size="25" font-weight="700" fill="#634a8c">CLS ⊕ max-pool</text>
+<text x="943.0" y="1095.0" text-anchor="middle" font-size="20" fill="#4f5a69">768 + 768</text>
+<text x="943.0" y="1122.0" text-anchor="middle" font-size="20" fill="#4f5a69">→ 1536차원</text>
+<rect x="780.0" y="1185.0" width="320.0" height="100.0" rx="14" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
+<rect x="780.0" y="1185.0" width="7" height="100.0" rx="3.5" fill="#634a8c"/>
+<text x="943.0" y="1229.5" text-anchor="middle" font-size="25" font-weight="700" fill="#634a8c">Linear</text>
+<text x="943.0" y="1258.5" text-anchor="middle" font-size="20" fill="#4f5a69">logit 1개</text>
+<rect x="400.0" y="1178.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
+<rect x="400.0" y="1178.5" width="7" height="113.0" rx="3.5" fill="#634a8c"/>
+<text x="563.0" y="1216.0" text-anchor="middle" font-size="25" font-weight="700" fill="#634a8c">BCEWithLogitsLoss</text>
+<text x="563.0" y="1245.0" text-anchor="middle" font-size="20" fill="#4f5a69">label &gt; 0.5 → 1</text>
+<text x="563.0" y="1272.0" text-anchor="middle" font-size="20" fill="#4f5a69">AdamW 2e-5</text>
+<rect x="20.0" y="1178.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d7c8e8" stroke-width="2"/>
+<rect x="20.0" y="1178.5" width="7" height="113.0" rx="3.5" fill="#634a8c"/>
+<svg x="41.0" y="1218.0" width="34" height="34" viewBox="0 0 24 24"><path d="M2.529 3.269c.868 0 1.563-.692 1.563-1.556S3.397.156 2.529.156C1.66.156.966.848.966 1.713c0 .864.694 1.556 1.563 1.556m.551 7.034c1.332-.317 2.17-1.643 1.853-2.968-.319-1.326-1.65-2.162-2.982-1.845C.62 5.807-.219 7.133.1 8.46a2.463 2.463 0 0 0 2.981 1.844M3.08 22.668c1.332-.318 2.17-1.643 1.853-2.97a2.486 2.486 0 0 0-2.982-1.844C.62 18.171-.219 19.497.1 20.823s1.65 2.162 2.981 1.845m.986-8.591c0-.865-.695-1.556-1.563-1.556-.869 0-1.563.691-1.563 1.556 0 .864.694 1.556 1.563 1.556.868 0 1.563-.691 1.563-1.556m7.988-.172a2.484 2.484 0 0 0-2.489 2.479c0 1.354 1.1 2.479 2.49 2.479a2.485 2.485 0 0 0 2.489-2.48c-.03-1.382-1.13-2.478-2.49-2.478m0 7.089c-.868 0-1.563.692-1.563 1.557 0 .864.695 1.556 1.563 1.556.869 0 1.563-.692 1.563-1.556-.029-.865-.723-1.557-1.563-1.557m0-9.251c.869 0 1.563-.692 1.563-1.557 0-.864-.694-1.556-1.563-1.556-.868 0-1.563.692-1.563 1.556s.695 1.557 1.563 1.557m.23-6.196c.84-.144 1.418-.922 1.273-1.758-.144-.836-.926-1.412-1.765-1.268-.84.144-1.419.922-1.274 1.758s.926 1.384 1.766 1.268m11.03 4.093a2.48 2.48 0 0 0 0-3.487c-.955-.951-2.547-.951-3.502 0a2.48 2.48 0 0 0 0 3.487c.955.98 2.547.98 3.502 0m-1.737-6.371c.868 0 1.563-.692 1.563-1.556S22.446.156 21.578.156c-.869 0-1.563.692-1.563 1.557 0 .864.694 1.556 1.563 1.556m0 9.281c-.869 0-1.563.692-1.563 1.556s.694 1.557 1.563 1.557c.868 0 1.563-.692 1.563-1.557-.03-.864-.724-1.556-1.563-1.556m0 6.169c-.869 0-1.563.691-1.563 1.556s.694 1.556 1.563 1.556c.868 0 1.563-.691 1.563-1.556-.03-.864-.724-1.556-1.563-1.556" fill="#fcbc32"></path></svg>
+<text x="203.0" y="1216.0" text-anchor="middle" font-size="25" font-weight="700" fill="#634a8c">W&amp;B Artifact</text>
+<text x="203.0" y="1245.0" text-anchor="middle" font-size="20" fill="#4f5a69">state_dict 업로드</text>
+<text x="203.0" y="1272.0" text-anchor="middle" font-size="20" fill="#4f5a69">(회귀 모델도 동일)</text>
+<rect x="17.4" y="1433.5" width="325.2" height="113.0" rx="14" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
+<rect x="17.4" y="1433.5" width="7" height="113.0" rx="3.5" fill="#4d5868"/>
+<svg x="38.4" y="1473.0" width="34" height="34" viewBox="0 0 24 24"><path d="M2.529 3.269c.868 0 1.563-.692 1.563-1.556S3.397.156 2.529.156C1.66.156.966.848.966 1.713c0 .864.694 1.556 1.563 1.556m.551 7.034c1.332-.317 2.17-1.643 1.853-2.968-.319-1.326-1.65-2.162-2.982-1.845C.62 5.807-.219 7.133.1 8.46a2.463 2.463 0 0 0 2.981 1.844M3.08 22.668c1.332-.318 2.17-1.643 1.853-2.97a2.486 2.486 0 0 0-2.982-1.844C.62 18.171-.219 19.497.1 20.823s1.65 2.162 2.981 1.845m.986-8.591c0-.865-.695-1.556-1.563-1.556-.869 0-1.563.691-1.563 1.556 0 .864.694 1.556 1.563 1.556.868 0 1.563-.691 1.563-1.556m7.988-.172a2.484 2.484 0 0 0-2.489 2.479c0 1.354 1.1 2.479 2.49 2.479a2.485 2.485 0 0 0 2.489-2.48c-.03-1.382-1.13-2.478-2.49-2.478m0 7.089c-.868 0-1.563.692-1.563 1.557 0 .864.695 1.556 1.563 1.556.869 0 1.563-.692 1.563-1.556-.029-.865-.723-1.557-1.563-1.557m0-9.251c.869 0 1.563-.692 1.563-1.557 0-.864-.694-1.556-1.563-1.556-.868 0-1.563.692-1.563 1.556s.695 1.557 1.563 1.557m.23-6.196c.84-.144 1.418-.922 1.273-1.758-.144-.836-.926-1.412-1.765-1.268-.84.144-1.419.922-1.274 1.758s.926 1.384 1.766 1.268m11.03 4.093a2.48 2.48 0 0 0 0-3.487c-.955-.951-2.547-.951-3.502 0a2.48 2.48 0 0 0 0 3.487c.955.98 2.547.98 3.502 0m-1.737-6.371c.868 0 1.563-.692 1.563-1.556S22.446.156 21.578.156c-.869 0-1.563.692-1.563 1.557 0 .864.694 1.556 1.563 1.556m0 9.281c-.869 0-1.563.692-1.563 1.556s.694 1.557 1.563 1.557c.868 0 1.563-.692 1.563-1.557-.03-.864-.724-1.556-1.563-1.556m0 6.169c-.869 0-1.563.691-1.563 1.556s.694 1.556 1.563 1.556c.868 0 1.563-.691 1.563-1.556-.03-.864-.724-1.556-1.563-1.556" fill="#fcbc32"></path></svg>
+<text x="203.0" y="1471.0" text-anchor="middle" font-size="25" font-weight="700" fill="#4d5868">W&amp;B Artifact</text>
+<text x="203.0" y="1500.0" text-anchor="middle" font-size="20" fill="#4f5a69">kobigbird-male / female</text>
+<text x="203.0" y="1527.0" text-anchor="middle" font-size="20" fill="#4f5a69">-mlp-pearson:latest</text>
+<rect x="400.0" y="1433.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
+<rect x="400.0" y="1433.5" width="7" height="113.0" rx="3.5" fill="#4d5868"/>
+<text x="563.0" y="1471.0" text-anchor="middle" font-size="25" font-weight="700" fill="#4d5868">HF 분류 모델</text>
+<text x="563.0" y="1500.0" text-anchor="middle" font-size="20" fill="#4f5a69">AutoModelFor-</text>
+<text x="563.0" y="1527.0" text-anchor="middle" font-size="20" fill="#4f5a69">SequenceClassification</text>
+<rect x="780.0" y="1433.5" width="320.0" height="113.0" rx="14" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
+<rect x="780.0" y="1433.5" width="7" height="113.0" rx="3.5" fill="#4d5868"/>
+<text x="943.0" y="1471.0" text-anchor="middle" font-size="25" font-weight="700" fill="#4d5868">sigmoid</text>
+<text x="943.0" y="1500.0" text-anchor="middle" font-size="20" fill="#4f5a69">max_length 512</text>
+<text x="943.0" y="1527.0" text-anchor="middle" font-size="20" fill="#4f5a69">logit → 0~1</text>
+<rect x="780.0" y="1590.0" width="320.0" height="100.0" rx="14" fill="#ffffff" stroke="#d5dae2" stroke-width="2"/>
+<rect x="780.0" y="1590.0" width="7" height="100.0" rx="3.5" fill="#4d5868"/>
+<g transform="translate(801.0,1623.0) scale(1.4167)"><path d="M10.773 2.878c-.013 1.434.322 4.624.445 5.734l-8.558 3.83c-.56-.959-.98-2.304-1.237-3.38l-.06.027c-.205.09-.406.053-.494-.088l-.011-.018-.82-1.506c-.058-.105-.05-.252.024-.392a.78.78 0 0 1 .358-.331l9.824-4.207c.146-.064.299-.063.4.004.106.062.127.128.13.327Zm.68 7c.523 1.97.675 2.412.832 2.818l-7.263 3.7a19.35 19.35 0 0 1-1.81-2.83l8.24-3.689Zm12.432 8.786h.003c.283.402-.047.657-.153.698l-.947.37c.037.125.035.319-.217.414l-.736.287c-.229.09-.398-.059-.42-.2l-.025-.125c-4.427 1.784-7.94 1.685-10.696.647-1.981-.745-3.576-1.983-4.846-3.379l6.948-3.54c.721 1.431 1.586 2.454 2.509 3.178 2.086 1.638 4.415 1.712 5.793 1.563l-.047-.233c-.015-.077.007-.135.086-.165l.734-.288a.302.302 0 0 1 .342.086l.748-.288a.306.306 0 0 1 .341.086l.583.89Z" fill="#3BABC3"/></g>
+<text x="963.0" y="1634.5" text-anchor="middle" font-size="25" font-weight="700" fill="#4d5868">POST /analyze</text>
+<text x="963.0" y="1663.5" text-anchor="middle" font-size="20" fill="#4f5a69">{ score } 반환</text>
+<text x="236.0" y="538.0" text-anchor="start" font-size="22" fill="#ffffff" stroke="#ffffff" stroke-width="7" stroke-linejoin="round">soft_label_male / female</text>
+<text x="236.0" y="538.0" text-anchor="start" font-size="22" fill="#51627d">soft_label_male / female</text>
+<text x="576.0" y="742.0" text-anchor="start" font-size="22" fill="#ffffff" stroke="#ffffff" stroke-width="7" stroke-linejoin="round">좌 · 우 발화 임베딩</text>
+<text x="576.0" y="742.0" text-anchor="start" font-size="22" fill="#51627d">좌 · 우 발화 임베딩</text>
 </svg>
