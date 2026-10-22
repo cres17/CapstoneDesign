@@ -154,6 +154,16 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
+        if (data['rejected'] == true) {
+          // 거절하면 서버가 두 사람의 기록을 지우므로 목록에서도 뺀다
+          setState(() {
+            _partners.remove(partner);
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('거절했습니다. 목록에서 삭제됩니다.')));
+          return;
+        }
         if (data['step'] == 3) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('서로 동의하여 데이트 단계로 진입합니다!')),
@@ -241,6 +251,16 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
+        if (data['rejected'] == true) {
+          // 거절하면 서버가 두 사람의 기록을 지우므로 목록에서도 뺀다
+          setState(() {
+            _partners.remove(partner);
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('거절했습니다. 목록에서 삭제됩니다.')));
+          return;
+        }
         if (data['step'] == 3) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('서로 동의하여 데이트 단계로 진입합니다!')),

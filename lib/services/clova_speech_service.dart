@@ -30,10 +30,8 @@ class ClovaSpeechService {
     // 요청 전 상세 로그 출력
     print('--- [ClovaSpeechService] API 요청 준비 ---');
     print('API URL: $url');
-    print('API KEY: $secret');
     print('파일 경로: $filePath');
     print('파일 크기: ${bytes.length} bytes');
-    print('헤더: X-CLOVASPEECH-API-KEY=$secret, Accept=application/json');
     print('fields: diarization=true, language=ko-KR');
     print('----------------------------------------');
 

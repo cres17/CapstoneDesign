@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../config/app_config.dart';
+import '../../services/auth_service.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../splash/splash_screen.dart';
@@ -13,32 +16,47 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // 사용자 정보 예시 데이터
-  final Map<String, dynamic> _userData = {
-    'name': '김다온',
-    'nickname': '다온',
-    'phone': '+82 10-1234-5678',
-    'email': 'daon@example.com',
-    'address': '서울특별시 강남구',
-    'profileImage': 'https://via.placeholder.com/150',
-  };
+  // 로그인 때 기기에 저장한 내 정보
+  int? _userId;
+  String _nickname = '';
+  String _username = '';
+  bool _updatingLocation = false;
 
   File? _profileImageFile;
 
   @override
   void initState() {
     super.initState();
-    _loadProfileImage();
+    _loadUserInfo();
   }
 
-  Future<void> _loadProfileImage() async {
+  Future<void> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
     final path = prefs.getString('profile_image_path');
-    if (path != null && await File(path).exists()) {
-      setState(() {
-        _profileImageFile = File(path);
-      });
+    final file =
+        (path != null && await File(path).exists()) ? File(path) : null;
+    if (!mounted) return;
+    setState(() {
+      _userId = prefs.getInt('user_id');
+      _nickname = prefs.getString('nickname') ?? '';
+      _username = prefs.getString('username') ?? '';
+      _profileImageFile = file;
+    });
+  }
+
+  ImageProvider? get _profileImage {
+    if (_profileImageFile != null) return FileImage(_profileImageFile!);
+    if (_userId != null) {
+      return NetworkImage('${AppConfig.serverUrl}/user-profile/$_userId');
     }
+    return null;
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -70,14 +88,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       CircleAvatar(
                         radius: 40,
                         backgroundColor: AppColors.lightGrey,
-                        backgroundImage:
-                            _profileImageFile != null
-                                ? FileImage(_profileImageFile!)
-                                : NetworkImage(_userData['profileImage'])
-                                    as ImageProvider,
-                        onBackgroundImageError: (_, __) {},
+                        backgroundImage: _profileImage,
+                        onBackgroundImageError:
+                            _profileImage == null ? null : (_, __) {},
                         child:
-                            _profileImageFile == null
+                            _profileImage == null
                                 ? Icon(
                                   Icons.person,
                                   size: 40,
@@ -91,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _userData['nickname'],
+                              _nickname.isEmpty ? '닉네임 없음' : _nickname,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -99,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _userData['email'],
+                              _username,
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                             const SizedBox(height: 8),
@@ -138,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               SettingsListItem(
                 icon: Icons.location_on_outlined,
-                title: '주소 수정',
+                title: _updatingLocation ? '주소(위치) 갱신 중…' : '주소 수정',
                 onTap: () {
                   _showAddressEditDialog(context);
                 },
@@ -224,38 +239,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // 주소 수정: 장소 추천에 쓰는 내 위치를 현재 위치로 갱신한다
   void _showAddressEditDialog(BuildContext context) {
-    final TextEditingController addressController = TextEditingController(
-      text: _userData['address'],
-    );
-
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
             title: const Text('주소 수정'),
-            content: TextField(
-              controller: addressController,
-              decoration: const InputDecoration(hintText: '새 주소를 입력하세요'),
+            content: const Text(
+              '현재 위치로 내 주소(위치)를 갱신합니다.\n데이트 장소 추천은 이 위치와 상대방 위치의 중간 지점을 기준으로 합니다.',
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('취소'),
               ),
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    _userData['address'] = addressController.text;
-                  });
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
+                  _updateLocation();
                 },
-                child: const Text('저장'),
+                child: const Text('현재 위치로 갱신'),
               ),
             ],
           ),
+    );
+  }
+
+  Future<void> _updateLocation() async {
+    if (_updatingLocation) return;
+    setState(() => _updatingLocation = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _showMessage('위치 서비스를 켜 주세요.');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showMessage('위치 권한이 필요합니다.');
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      final error = await AuthService.updateLocation(
+        position.latitude,
+        position.longitude,
+      );
+      _showMessage(error ?? '주소(위치)를 갱신했습니다.');
+    } catch (_) {
+      _showMessage('현재 위치를 가져오지 못했습니다.');
+    } finally {
+      if (mounted) setState(() => _updatingLocation = false);
+    }
+  }
+
+  void _goToStart() {
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const SplashScreen()),
+      (route) => false,
     );
   }
 
@@ -263,25 +313,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
             title: const Text('로그아웃'),
             content: const Text('정말 로그아웃하시겠습니까?'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('취소'),
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SplashScreen(),
-                    ),
-                    (route) => false,
-                  );
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  await AuthService.logout();
+                  _goToStart();
                 },
                 child: const Text('로그아웃'),
               ),
@@ -294,28 +338,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
             title: const Text('회원 탈퇴'),
             content: const Text(
               '정말 탈퇴하시겠습니까? 계정과 관련된 모든 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('취소'),
               ),
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SplashScreen(),
-                    ),
-                    (route) => false,
-                  );
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  final error = await AuthService.deleteAccount();
+                  if (error != null) {
+                    _showMessage(error);
+                    return;
+                  }
+                  _goToStart();
                 },
                 child: const Text('탈퇴하기'),
               ),

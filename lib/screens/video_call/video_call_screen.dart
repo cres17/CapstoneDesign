@@ -1,4 +1,5 @@
 import 'package:capstone_porj/models/call_result_data.dart';
+import 'package:capstone_porj/services/prediction_service.dart';
 import 'package:capstone_porj/services/prediction_storage_service.dart';
 import 'package:capstone_porj/widgets/face_mask_overlay.dart';
 import 'package:flutter/material.dart';
@@ -491,18 +492,15 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final gender = prefs.getString('gender') ?? 'male';
-      final response = await http.post(
-        Uri.parse('http://172.30.37.234:5001/analyze'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'input_text': script, 'gender': gender}),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      // 로그인 때 저장한 성별(male/female)로 해당 성별 모델을 호출한다
+      final gender = prefs.getString('gender');
+      if (gender == null) return null;
+      final score = await PredictionService.requestScore(script, gender);
+      if (score != null) {
         return {
           'date': DateTime.now().toIso8601String(),
           'partner': partnerName,
-          'result': '${((data['score'] ?? 0.0) * 100).toStringAsFixed(0)}',
+          'result': (score * 100).toStringAsFixed(0),
           'comment': 'AI가 분석한 매칭률입니다.',
           'compatibility': [],
           'isProcessing': false, // 예측 완료 표시

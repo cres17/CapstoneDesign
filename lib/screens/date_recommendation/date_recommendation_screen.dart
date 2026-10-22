@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
@@ -64,8 +65,7 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
       print('현재 위치: 경도(mapX)=$mapX, 위도(mapY)=$mapY');
 
       // 디코딩된 서비스키 사용
-      final String serviceKey =
-          'ZhUweX28UEl3Hx5AekfMOBgq4GkoC+9j//0fcItNuyS0P4gbgx5QQv6rbteypofg7x5qk5gfgawwtFA+hy0WHw==';
+      final String serviceKey = dotenv.env['TOUR_API_KEY'] ?? '';
       final String encodedServiceKey = Uri.encodeComponent(serviceKey);
 
       // 요청 URL 생성
@@ -82,8 +82,6 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
           '&numOfRows=10';
 
       print('요청 URL: $url');
-      print('서비스키(디코딩): $serviceKey');
-      print('서비스키(인코딩): $encodedServiceKey');
 
       final response = await http.get(Uri.parse(url));
       print('응답 코드: ${response.statusCode}');
@@ -200,8 +198,7 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
     });
 
     try {
-      final String serviceKey =
-          'ZhUweX28UEl3Hx5AekfMOBgq4GkoC+9j//0fcItNuyS0P4gbgx5QQv6rbteypofg7x5qk5gfgawwtFA+hy0WHw==';
+      final String serviceKey = dotenv.env['TOUR_API_KEY'] ?? '';
       final String encodedServiceKey = Uri.encodeComponent(serviceKey);
 
       final String url =

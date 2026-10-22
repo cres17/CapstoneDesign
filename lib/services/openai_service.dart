@@ -66,7 +66,6 @@ $conversation
     };
 
     print('[OpenAIService] 요청 준비: $_apiUrl');
-    print('[OpenAIService] 요청 바디: ${jsonEncode(body)}');
 
     final response = await http.post(
       Uri.parse(_apiUrl),
@@ -80,7 +79,6 @@ $conversation
     final decodedBody = utf8.decode(response.bodyBytes);
 
     print('[OpenAIService] 응답 코드: ${response.statusCode}');
-    print('[OpenAIService] 응답 바디: $decodedBody');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(decodedBody);
