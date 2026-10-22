@@ -87,4 +87,22 @@ class AuthService {
       return data['error'] ?? '로그인 실패';
     }
   }
+
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_id');
+    await prefs.remove('jwtToken');
+    // Provider 등 상태관리도 초기화 필요시 여기에 추가
+    // 예: UserProvider.of(context, listen: false).logout();
+  }
+
+  // SharedPreferences에서 user_id를 가져오는 함수
+  static Future<String?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
+    if (userId != null) {
+      return userId.toString();
+    }
+    return null;
+  }
 }

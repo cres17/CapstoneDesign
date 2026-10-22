@@ -45,7 +45,7 @@ class WebRTCFaceDetection {
 
   Future<void> _captureFrameFromBoundary() async {
     if (_isDetecting) {
-      print('[WebRTCFaceDetection] 이미 감지 중입니다. 캡처를 건너뜁니다.');
+      // print('[WebRTCFaceDetection] 이미 감지 중입니다. 캡처를 건너뜁니다.');
       return;
     }
     if (_boundaryKey == null) {
@@ -55,7 +55,7 @@ class WebRTCFaceDetection {
 
     try {
       _isDetecting = true;
-      print('[WebRTCFaceDetection] 캡처 시작');
+      // print('[WebRTCFaceDetection] 캡처 시작');
 
       final boundaryObject =
           _boundaryKey!.currentContext?.findRenderObject()
@@ -70,14 +70,14 @@ class WebRTCFaceDetection {
         format: ui.ImageByteFormat.png,
       );
       if (byteData == null) {
-        print('[WebRTCFaceDetection] toByteData 변환 실패');
+        // print('[WebRTCFaceDetection] toByteData 변환 실패');
         return;
       }
 
-      print(
-        '[WebRTCFaceDetection] boundaryImage 캡처 성공: '
-        'width=${boundaryImage.width}, height=${boundaryImage.height}',
-      );
+      // print(
+      //   '[WebRTCFaceDetection] boundaryImage 캡처 성공: '
+      //   'width=${boundaryImage.width}, height=${boundaryImage.height}',
+      // );
 
       // 1) PNG 바이트를 임시 파일로 저장
       final pngBytes = byteData.buffer.asUint8List();
@@ -91,23 +91,23 @@ class WebRTCFaceDetection {
 
       // 3) 얼굴 감지 수행
       final faces = await _faceDetector.processImage(inputImage);
-      print('[WebRTCFaceDetection] 감지된 얼굴 개수: ${faces.length}');
+      // print('[WebRTCFaceDetection] 감지된 얼굴 개수: ${faces.length}');
 
       // 4) 결과 스트림
       _facesController.add(faces);
       _boundaryImageCtrl.add(boundaryImage);
     } catch (e) {
-      print('[WebRTCFaceDetection] 에러 발생: $e');
+      // print('[WebRTCFaceDetection] 에러 발생: $e');
     } finally {
       _isDetecting = false;
-      print('[WebRTCFaceDetection] 캡처 종료');
+      // print('[WebRTCFaceDetection] 캡처 종료');
     }
   }
 
   Future<void> dispose() async {
     _captureTimer?.cancel();
-    _facesController.close();
-    _boundaryImageCtrl.close();
+    if (!_facesController.isClosed) _facesController.close();
+    if (!_boundaryImageCtrl.isClosed) _boundaryImageCtrl.close();
     await _faceDetector.close();
   }
 

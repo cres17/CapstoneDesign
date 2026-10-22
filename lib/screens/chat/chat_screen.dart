@@ -17,6 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _chatRooms = [];
   bool _isLoading = true;
   int? _userId;
+  Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
 
   @override
   void initState() {
@@ -26,23 +27,30 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadUserIdAndRooms() async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
-    if (userId == null) return;
+    final userId = prefs.getInt('user_id');
+    if (userId == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
       _userId = userId;
     });
-    await _fetchChatRooms(userId);
+    await _fetchChatRooms();
   }
 
-  Future<void> _fetchChatRooms(int userId) async {
-    setState(() {
-      _isLoading = true;
-    });
-    final url = Uri.parse('${AppConfig.serverUrl}/chat-rooms/$userId');
+  Future<void> _fetchChatRooms() async {
+    final url = Uri.parse('${AppConfig.serverUrl}/chat-rooms/$_userId');
     final res = await http.get(url);
     if (res.statusCode == 200) {
+      final List<dynamic> rooms = jsonDecode(res.body)['rooms'];
+      // user_id 목록 추출
+      final userIds = rooms.map((room) => _getPartnerId(room)).toSet();
+      final nicknameMap = await _fetchNicknames(userIds);
       setState(() {
-        _chatRooms = jsonDecode(res.body)['rooms'];
+        _chatRooms = rooms;
+        _userIdToNickname = nicknameMap;
         _isLoading = false;
       });
     } else {
@@ -50,6 +58,27 @@ class _ChatScreenState extends State<ChatScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // user_id → 닉네임 매핑 함수
+  Future<Map<String, String>> _fetchNicknames(Set<String> userIds) async {
+    Map<String, String> map = {};
+    for (final userId in userIds) {
+      try {
+        final res = await http.get(
+          Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+        );
+        if (res.statusCode == 200) {
+          final json = jsonDecode(res.body);
+          map[userId] = json['nickname'] ?? userId;
+        } else {
+          map[userId] = userId;
+        }
+      } catch (_) {
+        map[userId] = userId;
+      }
+    }
+    return map;
   }
 
   String _getPartnerId(Map room) {
@@ -71,6 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
       itemBuilder: (context, index) {
         final room = _chatRooms[index];
         final partnerId = _getPartnerId(room);
+        final partnerNickname = _userIdToNickname[partnerId] ?? partnerId;
         return ListTile(
           leading: CircleAvatar(
             backgroundColor: Colors.grey[200],
@@ -78,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
               '${AppConfig.serverUrl}/user-profile/$partnerId',
             ),
           ),
-          title: Text('상대방 유저ID: $partnerId'),
+          title: Text('상대방: $partnerNickname'), // 닉네임으로 표시
           subtitle: Text('채팅방 ID: ${room['id']}'),
           onTap: () {
             Navigator.push(
@@ -89,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       roomId: room['id'],
                       myUserId: _userId!,
                       partnerId: int.parse(partnerId),
+                      partnerNickname: partnerNickname, // 닉네임 전달
                     ),
               ),
             );
@@ -103,12 +134,14 @@ class ChatRoomPage extends StatefulWidget {
   final int roomId;
   final int myUserId;
   final int partnerId;
+  final String partnerNickname;
 
   const ChatRoomPage({
     Key? key,
     required this.roomId,
     required this.myUserId,
     required this.partnerId,
+    required this.partnerNickname,
   }) : super(key: key);
 
   @override
@@ -120,12 +153,23 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = true;
+  String? myNickname;
+  String? partnerNickname;
 
   @override
   void initState() {
     super.initState();
+    myNickname = null;
+    partnerNickname = widget.partnerNickname;
     _connectSocket();
     _fetchMessages();
+    _fetchMyNickname();
+  }
+
+  Future<void> _fetchMyNickname() async {
+    final prefs = await SharedPreferences.getInstance();
+    myNickname = prefs.getString('nickname') ?? '나';
+    setState(() {});
   }
 
   void _connectSocket() {
@@ -195,7 +239,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('상대방 유저ID: ${widget.partnerId}')),
+      appBar: AppBar(title: Text('상대방: ${widget.partnerNickname}')), // 닉네임 표시
       body: Column(
         children: [
           Expanded(
@@ -208,33 +252,72 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                       itemBuilder: (context, index) {
                         final msg = messages[index];
                         final isMe = msg['sender_id'] == widget.myUserId;
+                        final senderName =
+                            isMe
+                                ? (myNickname ?? '나')
+                                : (partnerNickname ?? '상대방');
                         return Align(
                           alignment:
                               isMe
                                   ? Alignment.centerRight
                                   : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(
-                              vertical: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 2,
                               horizontal: 8,
                             ),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
+                            child: Column(
+                              crossAxisAlignment:
                                   isMe
-                                      ? AppColors.primary.withOpacity(0.8)
-                                      : Colors.grey[200],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              msg['message'] ?? '',
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black87,
-                                fontSize: 16,
-                              ),
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                              children: [
+                                if (!isMe)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 4,
+                                      bottom: 2,
+                                    ),
+                                    child: Text(
+                                      senderName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isMe
+                                            ? AppColors.primary.withOpacity(0.8)
+                                            : Colors.grey[200],
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(14),
+                                      topRight: const Radius.circular(14),
+                                      bottomLeft: Radius.circular(
+                                        isMe ? 14 : 2,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        isMe ? 2 : 14,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    msg['message'] ?? '',
+                                    style: TextStyle(
+                                      color:
+                                          isMe ? Colors.white : Colors.black87,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
