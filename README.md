@@ -70,7 +70,7 @@
 
 소개팅 대화에서 발화자의 **호감도 변화**를 텍스트만으로 예측하는 자체 AI 모델입니다.  
 공개 데이터셋이 없는 도메인에서 Weak Supervision 기반 Soft Labeling으로 라벨을 보완하고,  
-BiERU(양방향 GNTB) 구조로 대화 전후 맥락을 학습합니다. 학습 코드는 private 저장소 `likeability_expectation`에 있습니다.
+KoBigBird 발화 인코더, 양방향 GNTB, LSTM/CNN을 결합한 회귀 구조로 대화 전후 맥락을 학습합니다. 학습 코드는 private 저장소 `likeability_expectation`에 있습니다.
 
 #### 성능
 
@@ -87,7 +87,7 @@ BiERU(양방향 GNTB) 구조로 대화 전후 맥락을 학습합니다. 학습 
   <img src="docs/assets/readme/model-architecture.svg" alt="호감도 예측 모델 아키텍처" width="100%">
 </p>
 
-모델은 네 단계로 나뉩니다. ① Soft Labeling으로 만든 연속 라벨을 ② BiERU 회귀 모델이 학습하고, ③ 이진 분류 모델은 원래의 하드 라벨로 별도 학습합니다. 분류와 회귀는 하나의 모델에서 나오는 이중 출력이 아니라 서로 다른 노트북의 별도 모델입니다. ④ 앱은 W&B에 올린 모델을 Flask 서버로 서빙해 사용합니다.
+모델은 네 단계로 나뉩니다. ① Soft Labeling으로 만든 연속 라벨을 ② KoBigBird · GNTB · LSTM/CNN 결합 회귀 모델이 학습하고, ③ 이진 분류 모델은 원래의 하드 라벨로 별도 학습합니다. 분류와 회귀는 하나의 모델에서 나오는 이중 출력이 아니라 서로 다른 노트북의 별도 모델입니다. ④ 앱은 W&B에 올린 모델을 Flask 서버로 서빙해 사용합니다.
 
 **데이터 수집**
 - 연애 예능 프로그램 발화 수집 (조건: 남녀 1:1 대화 + 대화 후 인터뷰 호감도 응답)
@@ -121,9 +121,9 @@ Before:  0 ████  0.5 ██  1 ████   (3점 집중 이산 분포
 After:   ░▒▓█████▓▒░▒▓██████▓░   (다봉 연속 분포)
 ```
 
-#### STEP 2. BiERU 회귀 — 양방향 GNTB 기반 맥락 학습
+#### STEP 2. KoBigBird · GNTB · LSTM/CNN 결합 회귀 — 대화 전후 맥락 학습
 
-BiERU(Li et al., 2022)는 GNTB(Generalized Neural Tensor Block)를 대화 순서대로 순방향·역방향으로 적용해 앞뒤 발화의 영향을 함께 학습합니다. 구현은 `BiERULocal` 클래스입니다.
+세 부분을 차례로 결합한 구조입니다. ① **KoBigBird**가 현재 발화와 좌·우 문맥 발화를 인코딩하고 n-gram CNN으로 지역 표현을 더해 100차원 벡터로 만듭니다. ② **GNTB**(Generalized Neural Tensor Block)를 대화 순서대로 순방향·역방향으로 적용해 앞뒤 발화의 영향을 상태로 누적합니다. 양방향 GNTB 적용 방식은 BiERU(Li et al., 2022)를 참고했습니다. ③ 순·역방향 상태를 **LSTM**(연속 감정 흐름)과 **CNN**(지역 패턴)에 통과시킨 뒤 회귀 헤드가 발화별 점수를 냅니다. 구현은 `BiERULocal` 클래스입니다.
 
 | 모듈 | 입력 → 출력 | 구현 내용 |
 |------|------------|----------|

@@ -4,7 +4,7 @@
 <rect x="-16.6" y="-18.5" width="1150.6" height="395.0" rx="18" fill="#fdf8ee" stroke="#ead6a6" stroke-width="2"/>
 <text x="5.4" y="19.5" font-size="22" font-weight="700" fill="#8a6420">① Soft Labeling · soft_labeling.ipynb</text>
 <rect x="-16.6" y="416.5" width="1150.6" height="520.0" rx="18" fill="#f2f7fb" stroke="#c4d5e6" stroke-width="2"/>
-<text x="233.4" y="454.5" font-size="22" font-weight="700" fill="#355a85">② BiERU 회귀 · model_train_male / female.ipynb</text>
+<text x="233.4" y="454.5" font-size="22" font-weight="700" fill="#355a85">② KoBigBird · GNTB · LSTM/CNN 결합 회귀 · model_train_male / female.ipynb</text>
 <rect x="-16.6" y="956.5" width="1150.6" height="365.0" rx="18" fill="#f6f2fa" stroke="#d7c8e8" stroke-width="2"/>
 <text x="5.4" y="994.5" font-size="22" font-weight="700" fill="#634a8c">③ 이진 분류 · classification_male / female.ipynb</text>
 <rect x="-16.6" y="1361.5" width="1150.6" height="358.5" rx="18" fill="#f6f7f9" stroke="#d5dae2" stroke-width="2"/>
