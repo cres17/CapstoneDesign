@@ -24,7 +24,7 @@
 **다온**은 Flutter 기반의 AI 소개팅 어플리케이션입니다.  
 실시간 영상통화, 얼굴 마스킹, AI 대화 분석, **호감도 변화 예측**, 실시간 채팅, 데이트 장소 추천 기능을 제공합니다.
 
-> 브랜치 안내: `main`에는 앱·Node 서버·모델 서버(`server/model_server.py`)가 있고, 영상통화 → 녹음 → STT → 대화 분석 → 호감도 예측까지 화면에 연결된 최종 발표 버전은 [`jmh`](https://github.com/cres17/CapstoneDesign/tree/jmh) 브랜치에 있습니다.
+> 브랜치 안내: [`mjs`](https://github.com/cres17/CapstoneDesign/tree/mjs) 브랜치는 `main`의 문서·모델 서버와 [`jmh`](https://github.com/cres17/CapstoneDesign/tree/jmh)의 최종 발표 앱을 합쳐, 영상통화 → 녹음 → STT → 대화 분석 → 호감도 예측까지 이 README의 흐름대로 빌드·실행되도록 정리한 브랜치입니다.
 
 ---
 
@@ -36,10 +36,10 @@
 
 | 구간 | 흐름 |
 |------|------|
-| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록 |
+| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록. 위치 갱신·회원탈퇴는 JWT를 검증한 뒤 본인 계정만 처리 |
 | 영상통화 | 두 앱이 Socket.IO로 offer · answer · ICE candidate를 주고받은 뒤 WebRTC로 직접 영상 연결 |
 | 얼굴 마스킹 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처 → ML Kit 얼굴 감지 → 얼굴 위치에 마스크 이미지 오버레이 |
-| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기 `SharedPreferences`에 저장 |
+| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수, 로그인 때 저장한 성별의 모델)에 각각 전송 → 결과를 기기 `SharedPreferences`에 저장 |
 | 관계 단계 | 1단계 통화 → 양쪽 동의 시 2단계 사진 공개 → 양쪽 동의 시 3단계 데이트, 이때 `chat_rooms` 생성 |
 | 채팅 | Socket.IO `joinRoom` · `sendMessage`로 실시간 송수신, 메시지는 MySQL `chat_messages`에 저장 |
 | 장소 추천 | 앱이 내 위치(Geolocator)와 상대 위치의 중간 좌표로 TourAPI `locationBasedList1`을 직접 조회 |
@@ -212,7 +212,7 @@ class KoBigBirdBinaryClassifier(nn.Module):
 - **랜덤 매칭**: 서버에 접속한 사용자 중 무작위 연결, 없으면 대기 목록에 등록
 - **관계 단계**: 통화 → 사진 공개 → 데이트, 각 단계는 양쪽 동의가 모두 있어야 진행. 거절하면 상대 목록에서 삭제
 - **대화 분석/예측 결과 조회**: 카드형 UI, 상세 화면
-- **설정**: 주소 수정, 로그아웃, 회원탈퇴
+- **설정**: 주소(위치) 수정은 현재 위치로 장소 추천에 쓰는 좌표를 갱신, 로그아웃은 기기에 저장된 로그인 정보 삭제, 회원탈퇴는 계정과 통화 상대·채팅 기록·프로필 이미지 삭제
 
 ---
 
@@ -227,7 +227,7 @@ class KoBigBirdBinaryClassifier(nn.Module):
 - **호감도 예측 페이지**: 통화별 호감도 예측 결과 카드
 - **데이트 장소 추천 페이지**: 두 사람의 위치 기반 추천 장소 카드 UI
 - **채팅방 페이지**: 1:1 채팅, 채팅방 목록, 실시간 메시지
-- **설정 페이지**: 주소 수정, 로그아웃, 회원탈퇴
+- **설정 페이지**: 내 닉네임·아이디·프로필 사진, 주소(위치) 수정, 로그아웃, 회원탈퇴
 
 ---
 
@@ -235,25 +235,37 @@ class KoBigBirdBinaryClassifier(nn.Module):
 
 **1. 저장소 클론**
 ```bash
-git clone https://github.com/cres17/CapstoneDesign.git
+git clone -b mjs https://github.com/cres17/CapstoneDesign.git
 cd CapstoneDesign
 ```
 
-**2. Node 서버** — `server/.env`에 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET` 설정 후
+**2. MySQL** — 데이터베이스를 만들고 스키마 적용 (`users`, `call_partners`, `chat_rooms`, `chat_messages`)
+```bash
+mysql -u <user> -p -e "CREATE DATABASE daon DEFAULT CHARACTER SET utf8mb4"
+mysql -u <user> -p daon < server/schema.sql
+```
+
+**3. Node 서버** — `server/.env.example`을 `server/.env`로 복사해 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET`, `PORT`(기본 5000) 설정 후
 ```bash
 cd server
 npm install
 node server.js
 ```
+프로필 이미지는 저장소의 `assets/profile/<id>.png`에 저장되고 `/assets/profile/…`, `/user-profile/:id`로 제공됩니다.
 
-**3. 모델 서버** — W&B 로그인 후
+**4. 모델 서버** — W&B 로그인(`wandb login`) 후. 포트 5001, 디버그 모드는 `MODEL_SERVER_DEBUG=1`일 때만 켜집니다.
 ```bash
 pip install flask torch transformers wandb
 python server/model_server.py
 ```
 
-**4. Flutter 앱** — 화면 연결이 끝난 `jmh` 브랜치 기준(`git checkout jmh`). 루트 `.env`에 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`을 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경
+**5. Flutter 앱** — 루트의 `.env.example`을 `.env`로 복사해 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`, `TOUR_API_KEY`(TourAPI 디코딩 키)를 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경합니다. Node 서버(5000)와 모델 서버(5001)는 같은 `serverIp`를 씁니다.
 ```bash
 flutter pub get
 flutter run
+```
+
+**테스트**
+```bash
+flutter test   # 예측 서버 호출·성별 변환 단위 테스트 (.env 파일이 있어야 빌드됨)
 ```

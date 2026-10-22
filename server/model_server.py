@@ -33,11 +33,11 @@ def index():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         input_text = data.get("input_text", "")
-        gender = data.get("gender", "").lower()
+        gender = str(data.get("gender", "")).lower()
 
-        if not input_text or gender not in ("male", "female"):
+        if not isinstance(input_text, str) or not input_text.strip() or gender not in ("male", "female"):
             return jsonify({"error": "input_text and gender(male/female) are required"}), 400
 
         model, tokenizer = (model_male, tokenizer_male) if gender == "male" else (model_female, tokenizer_female)
@@ -57,8 +57,14 @@ def analyze():
         return jsonify({"score": score})
 
     except Exception as e:
-        print("[ERROR]", e)
-        return jsonify({"error": str(e)}), 500
+        # 내부 오류 내용은 서버 로그에만 남기고 응답에는 노출하지 않는다
+        app.logger.exception("analyze failed: %s", e)
+        return jsonify({"error": "prediction failed"}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    # 디버그 모드는 Werkzeug 디버거가 외부에 열리지 않도록 기본으로 끈다 (MODEL_SERVER_DEBUG=1일 때만 사용)
+    app.run(
+        host=os.environ.get("MODEL_SERVER_HOST", "0.0.0.0"),
+        port=int(os.environ.get("MODEL_SERVER_PORT", "5001")),
+        debug=os.environ.get("MODEL_SERVER_DEBUG") == "1",
+    )
