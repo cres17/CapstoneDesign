@@ -24,7 +24,7 @@
 **다온**은 Flutter 기반의 AI 소개팅 어플리케이션입니다.  
 실시간 영상통화, 얼굴 마스킹, AI 대화 분석, **호감도 변화 예측**, 실시간 채팅, 데이트 장소 추천 기능을 제공합니다.
 
-> 브랜치 안내: `main`에는 앱·Node 서버·모델 서버(`server/model_server.py`)가 있고, 영상통화 → 녹음 → STT → 대화 분석 → 호감도 예측까지 화면에 연결된 최종 발표 버전은 [`jmh`](https://github.com/cres17/CapstoneDesign/tree/jmh) 브랜치에 있습니다.
+> 브랜치 안내: `main`에는 앱·Node 서버·모델 서버(`server/model_server.py`)가 있고, 영상통화 → 녹음 → STT → 대화 분석 → 호감도 예측까지 화면에 연결된 최종 발표 버전은 [`jmh`](https://github.com/cres17/CapstoneDesign/tree/jmh) 브랜치에 있습니다. `main`의 Flutter 앱은 `pubspec.yaml`에 없는 패키지(`flutter_dotenv`, `geolocator` 등)를 import하고 있어 그대로는 빌드되지 않으므로, 앱은 `jmh` 브랜치에서 실행합니다.
 
 ---
 
