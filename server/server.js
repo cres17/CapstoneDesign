@@ -14,6 +14,34 @@ const app = express();
 // ★★★ 반드시 라우터 등록 전에 위치해야 함!
 app.use(express.json());
 
+// 프로필 이미지 폴더: 저장소 루트의 assets/profile (DB에는 'assets/profile/<id>.png'로 저장)
+const PROFILE_DIR = path.join(__dirname, '..', 'assets', 'profile');
+fs.mkdirSync(PROFILE_DIR, { recursive: true });
+app.use('/assets/profile', express.static(PROFILE_DIR));
+
+// JWT 검증 미들웨어: Authorization: Bearer <token>
+function requireAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ error: '로그인이 필요합니다.' });
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: '로그인이 만료되었거나 올바르지 않습니다.' });
+  }
+}
+
+// 요청 경로의 사용자와 토큰의 사용자가 같은지 확인
+function requireSelf(req, res, next) {
+  if (Number(req.params.id) !== Number(req.user?.id)) {
+    return res.status(403).json({ error: '본인 계정만 변경할 수 있습니다.' });
+  }
+  return next();
+}
+
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
@@ -42,15 +70,20 @@ let waitingUsers = [];
 // 프로필 이미지 저장 경로 및 파일명 지정
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'C:/capstone/CapstoneDesign/assets/profile');
+    cb(null, PROFILE_DIR);
   },
   filename: function (req, file, cb) {
-    // 닉네임으로 파일명 지정, 확장자는 png로 고정
-    const userId = req.body.userId;
-    cb(null, `${userId}.png`);
+    // 임시 이름으로 저장한 뒤 업로드 처리에서 <id>.png로 바꾼다
+    cb(null, `upload-${Date.now()}-${Math.round(Math.random() * 1e9)}.tmp`);
   }
 });
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: function (req, file, cb) {
+    cb(null, /^image\//.test(file.mimetype));
+  },
+});
 
 // 매칭 API 엔드포인트
 app.get('/match', (req, res) => {
@@ -265,12 +298,21 @@ io.on('connection', (socket) => {
   // 메시지 전송
   socket.on('sendMessage', async (data) => {
     // data: { roomId, senderId, message }
-    const { roomId, senderId, message } = data;
-    // DB 저장
-    await db.query(
-      `INSERT INTO chat_messages (room_id, sender_id, message) VALUES (?, ?, ?)`,
-      [roomId, senderId, message]
-    );
+    const { roomId, senderId, message } = data || {};
+    if (!roomId || !senderId || typeof message !== 'string' || message.trim() === '') {
+      return;
+    }
+    // DB 저장 (실패해도 서버 프로세스가 종료되지 않도록 처리)
+    try {
+      await db.query(
+        `INSERT INTO chat_messages (room_id, sender_id, message) VALUES (?, ?, ?)`,
+        [roomId, senderId, message]
+      );
+    } catch (err) {
+      console.error('채팅 메시지 저장 오류:', err);
+      socket.emit('messageError', { roomId, error: '메시지를 저장하지 못했습니다.' });
+      return;
+    }
     // 실시간 전파
     io.to(`room_${roomId}`).emit('receiveMessage', {
       roomId,
@@ -328,12 +370,12 @@ app.post('/upload-profile-image', upload.single('profile_image'), async (req, re
     if (!req.file) {
       return res.status(400).json({ error: '이미지 파일이 없습니다.' });
     }
-    const path = require('path');
     const oldPath = req.file.path;
 
     // 2. DB에서 id(PK) 조회
     const [rows] = await db.query('SELECT id FROM users WHERE nickname = ?', [nickname]);
     if (!rows || rows.length === 0) {
+      fs.rmSync(oldPath, { force: true });
       return res.status(404).json({ error: '유저를 찾을 수 없습니다.' });
     }
     const userId = rows[0].id;
@@ -388,6 +430,7 @@ app.post('/login', async (req, res) => {
         id: user.id,
         username: user.username,
         nickname: user.nickname,
+        gender: user.gender,
       },
     });
   } catch (err) {
@@ -443,6 +486,15 @@ app.post('/call-partner/step', async (req, res) => {
     return res.status(400).json({ error: '필수 값 누락' });
   }
   try {
+    // 0. 거절하면 두 사람의 통화 상대 기록을 모두 삭제 (README: 거절하면 상대 목록에서 삭제)
+    if (agree === false || agree === 'false') {
+      await db.query(
+        'DELETE FROM call_partners WHERE (user_id = ? AND partner_id = ?) OR (user_id = ? AND partner_id = ?)',
+        [user_id, partnerId, partnerId, user_id]
+      );
+      return res.json({ success: true, rejected: true });
+    }
+
     // 1. 내 row 업데이트 (my_agree)
     await db.query(
       'UPDATE call_partners SET my_agree = ? WHERE user_id = ? AND partner_id = ?',
@@ -585,8 +637,6 @@ app.get('/date-partners/:userId', async (req, res) => {
   }
 });
 
-const CALL_HISTORY_PATH = path.join(__dirname, 'call_history.json');
-
 // 통화내역 저장 (DB)
 app.post('/api/call-history', async (req, res) => {
   const { user_id, partner_id, date } = req.body;
@@ -635,19 +685,6 @@ app.post('/api/call-history', async (req, res) => {
   }
 });
 
-// (필요시) 통화내역 조회
-app.get('/api/call-history/:user_id', (req, res) => {
-  const user_id = req.params.user_id;
-  let history = [];
-  if (fs.existsSync(CALL_HISTORY_PATH)) {
-    history = JSON.parse(fs.readFileSync(CALL_HISTORY_PATH, 'utf8'));
-  }
-  const myHistory = history.filter(
-    (item) => item.user_id == user_id || item.partner_id == user_id
-  );
-  res.json(myHistory);
-});
-
 // 유저 정보 조회 (닉네임 포함)
 app.get('/users/:userId', async (req, res) => {
   const userId = req.params.userId;
@@ -659,6 +696,54 @@ app.get('/users/:userId', async (req, res) => {
     return res.json(rows[0]);
   } catch (err) {
     return res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 주소(위치) 갱신: 장소 추천에 쓰는 내 좌표를 현재 위치로 바꾼다
+app.put('/users/:id/location', requireAuth, requireSelf, async (req, res) => {
+  const latitude = Number(req.body.latitude);
+  const longitude = Number(req.body.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    return res.status(400).json({ error: '올바른 위치가 아닙니다.' });
+  }
+  try {
+    await db.query('UPDATE users SET latitude = ?, longitude = ? WHERE id = ?',
+      [latitude, longitude, req.user.id]);
+    return res.json({ success: true, latitude, longitude });
+  } catch (err) {
+    console.error('위치 갱신 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 회원탈퇴: 계정과 통화 상대·채팅 기록, 프로필 이미지를 함께 삭제
+app.delete('/users/:id', requireAuth, requireSelf, async (req, res) => {
+  const userId = req.user.id;
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rooms] = await conn.query(
+      'SELECT id FROM chat_rooms WHERE user1_id = ? OR user2_id = ?', [userId, userId]);
+    const roomIds = rooms.map((r) => r.id);
+    if (roomIds.length > 0) {
+      await conn.query('DELETE FROM chat_messages WHERE room_id IN (?)', [roomIds]);
+      await conn.query('DELETE FROM chat_rooms WHERE id IN (?)', [roomIds]);
+    }
+    await conn.query('DELETE FROM call_partners WHERE user_id = ? OR partner_id = ?', [userId, userId]);
+    const [result] = await conn.query('DELETE FROM users WHERE id = ?', [userId]);
+    await conn.commit();
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: '유저를 찾을 수 없습니다.' });
+    }
+    fs.rmSync(path.join(PROFILE_DIR, `${userId}.png`), { force: true });
+    return res.json({ success: true });
+  } catch (err) {
+    await conn.rollback();
+    console.error('회원탈퇴 오류:', err);
+    return res.status(500).json({ error: '서버 오류' });
+  } finally {
+    conn.release();
   }
 });
 
