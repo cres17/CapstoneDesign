@@ -61,4 +61,5 @@ def analyze():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    # debug=True는 Werkzeug 대화형 디버거를 켠다. 0.0.0.0으로 열 때 기본값으로 두지 않는다.
+    app.run(host="0.0.0.0", port=5001, debug=os.environ.get("FLASK_DEBUG") == "1")

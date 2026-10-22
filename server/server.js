@@ -6,6 +6,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
@@ -38,15 +40,32 @@ const activeCalls = {};
 // 대기 중인 사용자 목록
 let waitingUsers = [];
 
+// 두 사용자 사이의 통화 상태를 지운다. 지우지 않으면 같은 두 사람의 다음 acceptCall이 '이미 처리된 요청'으로 무시된다.
+function clearCall(a, b) {
+  delete activeCalls[`${a}-${b}`];
+  delete activeCalls[`${b}-${a}`];
+}
+
+function clearCallsOf(userId) {
+  for (const [callId, call] of Object.entries(activeCalls)) {
+    if (String(call.caller) === String(userId) || String(call.receiver) === String(userId)) {
+      delete activeCalls[callId];
+    }
+  }
+}
+
 // 프로필 이미지 저장 경로 및 파일명 지정
+// /user-profile/:id가 읽는 위치(저장소 루트의 assets/profile)와 같은 곳에 저장한다.
+const PROFILE_DIR = path.join(__dirname, '..', 'assets', 'profile');
+fs.mkdirSync(PROFILE_DIR, { recursive: true });
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'C:/capstone/CapstoneDesign/assets/profile');
+    cb(null, PROFILE_DIR);
   },
   filename: function (req, file, cb) {
-    // 닉네임으로 파일명 지정, 확장자는 png로 고정
-    const userId = req.body.userId;
-    cb(null, `${userId}.png`);
+    // multipart에서 텍스트 필드가 파일보다 늦게 올 수 있어 body 값에 의존하지 않는다.
+    // 임시 이름으로 저장한 뒤 업로드 API가 DB id 기준 `${id}.png`로 바꾼다.
+    cb(null, `upload-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.png`);
   }
 });
 const upload = multer({ storage: storage });
@@ -185,6 +204,8 @@ io.on('connection', (socket) => {
       console.error('통화내역 저장 오류:', err);
     }
 
+    clearCall(myUserId, partnerUserId);
+
     // 통화 종료 알림
     if (activeUsers[target]?.socketId) {
       io.to(activeUsers[target]?.socketId).emit('callEnded', {
@@ -197,6 +218,7 @@ io.on('connection', (socket) => {
   socket.on('callRejected', (data) => {
     const { caller } = data;
     console.log(`통화 거절: ${socket.userId} -> ${caller}`);
+    clearCall(socket.userId, caller);
     
     if (activeUsers[caller]?.socketId) {
       io.to(activeUsers[caller]?.socketId).emit('callRejected', {
@@ -246,6 +268,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     if (socket.userId) {
       waitingUsers = waitingUsers.filter(id => id !== socket.userId);
+      // 같은 사용자가 새 소켓으로 다시 등록한 경우는 지우지 않는다.
+      if (activeUsers[socket.userId]?.socketId === socket.id) {
+        delete activeUsers[socket.userId];
+      }
+      clearCallsOf(socket.userId);
       console.log('연결 해제, 대기 목록에서 제거:', socket.userId, waitingUsers);
     }
   });
@@ -258,12 +285,18 @@ io.on('connection', (socket) => {
   // 메시지 전송
   socket.on('sendMessage', async (data) => {
     // data: { roomId, senderId, message }
-    const { roomId, senderId, message } = data;
-    // DB 저장
-    await db.query(
-      `INSERT INTO chat_messages (room_id, sender_id, message) VALUES (?, ?, ?)`,
-      [roomId, senderId, message]
-    );
+    const { roomId, senderId, message } = data || {};
+    // DB 저장. 소켓 핸들러에서 거부된 Promise를 처리하지 않으면 Node 프로세스가 종료되므로 여기서 잡는다.
+    try {
+      await db.query(
+        `INSERT INTO chat_messages (room_id, sender_id, message) VALUES (?, ?, ?)`,
+        [roomId, senderId, message]
+      );
+    } catch (err) {
+      console.error('채팅 메시지 저장 오류:', err);
+      socket.emit('sendMessageError', { roomId, error: '메시지를 저장하지 못했습니다.' });
+      return;
+    }
     // 실시간 전파
     io.to(`room_${roomId}`).emit('receiveMessage', {
       roomId,
@@ -316,13 +349,12 @@ app.post('/upload-profile-image', upload.single('profile_image'), async (req, re
     if (!req.file) {
       return res.status(400).json({ error: '이미지 파일이 없습니다.' });
     }
-    const fs = require('fs');
-    const path = require('path');
     const oldPath = req.file.path;
 
     // 2. DB에서 id(PK) 조회
     const [rows] = await db.query('SELECT id FROM users WHERE nickname = ?', [nickname]);
     if (!rows || rows.length === 0) {
+      fs.rmSync(oldPath, { force: true });
       return res.status(404).json({ error: '유저를 찾을 수 없습니다.' });
     }
     const userId = rows[0].id;
