@@ -31,12 +31,51 @@
 | 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록 |
 | 영상통화 | 두 앱이 Socket.IO로 offer · answer · ICE candidate를 주고받은 뒤 WebRTC로 직접 영상 연결 |
 | 얼굴 마스킹 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처 → ML Kit 얼굴 감지 → 얼굴 위치에 마스크 이미지 오버레이 |
-| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기 `SharedPreferences`에 저장 |
+| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기에 저장(대화 분석은 `analysis_results.json` 파일, 호감도 예측은 `SharedPreferences`) |
 | 관계 단계 | 1단계 통화 → 양쪽 동의 시 2단계 사진 공개 → 양쪽 동의 시 3단계 데이트, 이때 `chat_rooms` 생성 |
 | 채팅 | Socket.IO `joinRoom` · `sendMessage`로 실시간 송수신, 메시지는 MySQL `chat_messages`에 저장 |
 | 장소 추천 | 앱이 내 위치(Geolocator)와 상대 위치의 중간 좌표로 TourAPI `locationBasedList1`을 직접 조회 |
 
 ---
+
+## 시작하기
+
+**1. 저장소 클론**
+```bash
+git clone https://github.com/cres17/CapstoneDesign.git
+cd CapstoneDesign
+```
+
+**2. Node 서버** — `server/.env`에 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET` 설정 후
+```bash
+cd server
+npm install
+node server.js
+```
+
+**3. 모델 서버** — W&B 로그인 후
+```bash
+pip install flask torch transformers wandb
+python server/model_server.py
+```
+
+**4. Flutter 앱** — 화면 연결이 끝난 `jmh` 브랜치 기준(`git checkout jmh`). 루트 `.env`에 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`을 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경
+```bash
+flutter pub get
+flutter run
+```
+
+---
+
+## 핵심 설계 결정
+
+| 결정 | 방식 | 위치 |
+|------|------|------|
+| 영상은 P2P, 서버는 시그널링만 | Socket.IO 서버가 offer · answer · ICE candidate만 중계하고, 영상은 WebRTC로 두 앱이 직접 연결합니다. | `server/server.js`, `lib/services/signaling_service.dart` |
+| 얼굴 마스킹은 기기에서 처리 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처해 ML Kit 얼굴 감지를 돌리고, 얼굴 위치에 마스크 이미지를 덮습니다. | `lib/services/webrtc_face_detection.dart`, `lib/widgets/face_mask_overlay.dart` |
+| 관계 단계는 양쪽 동의로만 진행 | 통화 → 사진 공개 → 데이트 단계마다 양쪽 동의가 있어야 `call_partners` 상태가 바뀌고, 3단계에서 `chat_rooms`가 생성됩니다. 거절하면 상대 목록에서 삭제됩니다. | `server/server.js`, `lib/screens/call_history_screen.dart` |
+| 분석 · 예측 결과는 기기에 저장 | 대화 분석 결과는 앱 문서 디렉터리의 `analysis_results.json`에, 호감도 예측 결과는 `SharedPreferences`(`prediction_results`)에 최신순으로 저장하고 서버 DB에는 두지 않습니다. | `lib/services/analysis_storage_service.dart`, `prediction_storage_service.dart` (`jmh` 브랜치) |
+| 호감도 모델은 별도 서버로 분리 | Flask 모델 서버(포트 5001)가 시작 시 W&B Artifact의 `latest` 가중치를 받아 로드하고, 앱은 `POST /analyze` 점수를 호출합니다. | `server/model_server.py` |
 
 ## 주요 기능
 
@@ -85,7 +124,9 @@ KoBigBird 발화 인코더, 양방향 GNTB, LSTM/CNN을 결합한 회귀 구조�
 - 연애 예능 프로그램 발화 수집 (조건: 남녀 1:1 대화 + 대화 후 인터뷰 호감도 응답)
 - 남성 입장 / 여성 입장 각각 `0(하락) / 0.5(유지) / 1(상승)` 하드 레이블 부여
 
-#### STEP 1. 라벨 스무딩 (Soft Labeling)
+<details>
+<summary><b>STEP 1. 라벨 스무딩 (Soft Labeling)</b></summary>
+
 
 `0 / 0.5 / 1` 이산값만으로는 호감 변화의 강도와 불확실성을 표현하기 어려워, 그래프 기반 라벨 전파로 `[0, 1]` 연속값을 만듭니다. (Pukdee et al., 2022의 weak supervision label propagation 구조)
 
@@ -113,7 +154,11 @@ Before:  0 ████  0.5 ██  1 ████   (3점 집중 이산 분포
 After:   ░▒▓█████▓▒░▒▓██████▓░   (다봉 연속 분포)
 ```
 
-#### STEP 2. KoBigBird · GNTB · LSTM/CNN 결합 회귀 — 대화 전후 맥락 학습
+</details>
+
+<details>
+<summary><b>STEP 2. KoBigBird · GNTB · LSTM/CNN 결합 회귀 — 대화 전후 맥락 학습</b></summary>
+
 
 세 부분을 차례로 결합한 구조입니다. ① **KoBigBird**가 현재 발화와 좌·우 문맥 발화를 인코딩하고 n-gram CNN으로 지역 표현을 더해 100차원 벡터로 만듭니다. ② **GNTB**(Generalized Neural Tensor Block)를 대화 순서대로 순방향·역방향으로 적용해 앞뒤 발화의 영향을 상태로 누적합니다. 양방향 GNTB 적용 방식은 BiERU(Li et al., 2022)를 참고했습니다. ③ 순·역방향 상태를 **LSTM**(연속 감정 흐름)과 **CNN**(지역 패턴)에 통과시킨 뒤 회귀 헤드가 발화별 점수를 냅니다. 구현은 `BiERULocal` 클래스입니다.
 
@@ -148,7 +193,11 @@ for t in range(T):
 | 기타 | batch 1(대화 단위), epoch 10, dropout 0.5, AMP(`autocast`, `GradScaler`), 학습/검증 80:20 |
 | 평가·기록 | MSE, MAE, Pearson 상관, W&B Artifact(`bieru-model-soft_label-*`) |
 
-#### STEP 3. 이진 분류 — 호감 상승 여부
+</details>
+
+<details>
+<summary><b>STEP 3. 이진 분류 — 호감 상승 여부</b></summary>
+
 
 ```python
 class KoBigBirdBinaryClassifier(nn.Module):
@@ -171,7 +220,11 @@ class KoBigBirdBinaryClassifier(nn.Module):
 - 학습: `BCEWithLogitsLoss`, AdamW lr 2e-5, batch 4, epoch 10, 학습/평가 80:20 (`random_state=42`)
 - 평가: sigmoid 후 0.5 임계값으로 Accuracy · F1 · 혼동행렬
 
-#### STEP 4. 모델 서빙
+</details>
+
+<details>
+<summary><b>STEP 4. 모델 서빙</b></summary>
+
 
 - 학습한 가중치를 **W&B Artifacts**로 버전 관리
 - `server/model_server.py`(Flask, 포트 5001)가 시작 시 `kobigbird-male-mlp-pearson`, `kobigbird-female-mlp-pearson`의 `latest` 아티팩트를 받아 `AutoModelForSequenceClassification`으로 로드
@@ -179,6 +232,8 @@ class KoBigBirdBinaryClassifier(nn.Module):
 - 앱은 점수 × 100을 "호감 지수"로 표시
 
 > 서빙 아티팩트는 Hugging Face 분류 모델 형식이며, 이를 만든 학습 노트북은 `likeability_expectation` 저장소에 포함되어 있지 않습니다. 위 STEP 2·3의 노트북은 `state_dict`를 저장합니다.
+
+</details>
 
 > 참고: Li, Wei, et al. *"BiERU: Bidirectional emotional recurrent unit for conversational sentiment analysis."* Neurocomputing 467 (2022)  
 > 참고: Pukdee, Rattana, et al. *"Label propagation with weak supervision."* arXiv:2210.03594 (2022)  
@@ -208,44 +263,16 @@ class KoBigBirdBinaryClassifier(nn.Module):
 
 ---
 
-## 화면 구성
-
-- **시작 페이지**: 앱 소개, 로그인/회원가입 버튼
-- **회원가입 페이지**: 아이디, 비밀번호, 성별, 주소, 닉네임, 프로필 사진 입력
-- **로그인 페이지**: 아이디, 비밀번호 입력
-- **메인 페이지**: 하단 네비게이션(메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 네비게이션(대화 분석, 예측 결과)
-- **영상통화 페이지**: 얼굴 마스킹 적용된 영상통화
-- **대화분석 페이지**: 통화별 분석 결과 카드, 상세 화면
-- **호감도 예측 페이지**: 통화별 호감도 예측 결과 카드
-- **데이트 장소 추천 페이지**: 두 사람의 위치 기반 추천 장소 카드 UI
-- **채팅방 페이지**: 1:1 채팅, 채팅방 목록, 실시간 메시지
-- **설정 페이지**: 주소 수정, 로그아웃, 회원탈퇴
-
 ---
 
-## 시작하기
+## 화면 구성
 
-**1. 저장소 클론**
-```bash
-git clone https://github.com/cres17/CapstoneDesign.git
-cd CapstoneDesign
-```
-
-**2. Node 서버** — `server/.env`에 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET` 설정 후
-```bash
-cd server
-npm install
-node server.js
-```
-
-**3. 모델 서버** — W&B 로그인 후
-```bash
-pip install flask torch transformers wandb
-python server/model_server.py
-```
-
-**4. Flutter 앱** — 화면 연결이 끝난 `jmh` 브랜치 기준(`git checkout jmh`). 루트 `.env`에 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`을 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경
-```bash
-flutter pub get
-flutter run
-```
+| 화면 | 내용 |
+|------|------|
+| 시작 · 로그인 · 회원가입 | 앱 소개, 아이디 · 비밀번호 로그인, 성별 · 주소 · 닉네임 · 프로필 사진 입력 |
+| 메인 | 하단 내비게이션(메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 내비게이션(대화 분석, 예측 결과) |
+| 영상통화 | 얼굴 마스킹이 적용된 영상통화 |
+| 대화 분석 · 호감도 예측 | 통화별 결과 카드와 상세 화면 |
+| 데이트 장소 추천 | 두 사람의 위치 기반 추천 장소 카드 |
+| 채팅방 | 1:1 채팅, 채팅방 목록, 실시간 메시지 |
+| 설정 | 주소 수정, 로그아웃, 회원탈퇴 |
