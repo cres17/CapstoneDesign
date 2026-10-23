@@ -3,21 +3,15 @@
 # 다온 (Daon) - AI 기반 소개팅 어플리케이션
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat&logoColor=white&logo=dart)
 ![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat&logoColor=white&logo=webrtc)
-![Google ML Kit](https://img.shields.io/badge/Google%20ML%20Kit-4285F4?style=flat&logoColor=white&logo=google)
 ![Node.js](https://img.shields.io/badge/Node.js-5FA04E?style=flat&logoColor=white&logo=nodedotjs)
-![Express 5](https://img.shields.io/badge/Express%205-0A0A0A?style=flat&logoColor=white&logo=express)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat&logoColor=white&logo=socketdotio)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logoColor=white&logo=mysql)
 ![CLOVA Speech](https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&logoColor=white&logo=naver)
 ![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logoColor=white)
-![TourAPI](https://img.shields.io/badge/TourAPI-1F6F8B?style=flat&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logoColor=white&logo=pytorch)
 ![Hugging Face Transformers](https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&logoColor=black&logo=huggingface)
-![Snorkel](https://img.shields.io/badge/Snorkel-5A4FCF?style=flat&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
-![Weights & Biases](https://img.shields.io/badge/Weights%20%26%20Biases-FFBE00?style=flat&logoColor=black&logo=weightsandbiases)
 
 </div>
 
