@@ -3,21 +3,15 @@
 # 다온 (Daon) - AI 기반 소개팅 어플리케이션
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=flat&logoColor=white&logo=dart)
 ![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat&logoColor=white&logo=webrtc)
-![Google ML Kit](https://img.shields.io/badge/Google%20ML%20Kit-4285F4?style=flat&logoColor=white&logo=google)
 ![Node.js](https://img.shields.io/badge/Node.js-5FA04E?style=flat&logoColor=white&logo=nodedotjs)
-![Express 5](https://img.shields.io/badge/Express%205-0A0A0A?style=flat&logoColor=white&logo=express)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat&logoColor=white&logo=socketdotio)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logoColor=white&logo=mysql)
 ![CLOVA Speech](https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&logoColor=white&logo=naver)
 ![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logoColor=white)
-![TourAPI](https://img.shields.io/badge/TourAPI-1F6F8B?style=flat&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logoColor=white&logo=pytorch)
 ![Hugging Face Transformers](https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&logoColor=black&logo=huggingface)
-![Snorkel](https://img.shields.io/badge/Snorkel-5A4FCF?style=flat&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
-![Weights & Biases](https://img.shields.io/badge/Weights%20%26%20Biases-FFBE00?style=flat&logoColor=black&logo=weightsandbiases)
 
 </div>
 
@@ -34,19 +28,92 @@
 
 | 구간 | 흐름 |
 |------|------|
-| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록. 위치 갱신·회원탈퇴는 JWT를 검증한 뒤 본인 계정만 처리 |
+| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록 |
 | 영상통화 | 두 앱이 Socket.IO로 offer · answer · ICE candidate를 주고받은 뒤 WebRTC로 직접 영상 연결 |
 | 얼굴 마스킹 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처 → ML Kit 얼굴 감지 → 얼굴 위치에 마스크 이미지 오버레이 |
-| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수, 로그인 때 저장한 성별의 모델)에 각각 전송 → 결과를 기기 `SharedPreferences`에 저장 |
+| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기에 저장(대화 분석은 `analysis_results.json` 파일, 호감도 예측은 `SharedPreferences`) |
 | 관계 단계 | 1단계 통화 → 양쪽 동의 시 2단계 사진 공개 → 양쪽 동의 시 3단계 데이트, 이때 `chat_rooms` 생성 |
 | 채팅 | Socket.IO `joinRoom` · `sendMessage`로 실시간 송수신, 메시지는 MySQL `chat_messages`에 저장 |
 | 장소 추천 | 앱이 내 위치(Geolocator)와 상대 위치의 중간 좌표로 TourAPI `locationBasedList1`을 직접 조회 |
 
 ---
 
+## 시작하기
+
+**1. 저장소 클론**
+```bash
+git clone https://github.com/cres17/CapstoneDesign.git
+cd CapstoneDesign
+```
+
+**2. Node 서버** — `server/.env`에 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET` 설정 후
+```bash
+cd server
+npm install
+node server.js
+```
+
+**3. 모델 서버** — W&B 로그인 후
+```bash
+pip install flask torch transformers wandb
+python server/model_server.py
+```
+
+**4. Flutter 앱** — 화면 연결이 끝난 `jmh` 브랜치 기준(`git checkout jmh`). 루트 `.env`에 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`을 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경
+```bash
+flutter pub get
+flutter run
+```
+
+---
+
+## 핵심 설계 결정
+
+| 결정 | 방식 | 위치 |
+|------|------|------|
+| 영상은 P2P, 서버는 시그널링만 | Socket.IO 서버가 offer · answer · ICE candidate만 중계하고, 영상은 WebRTC로 두 앱이 직접 연결합니다. | `server/server.js`, `lib/services/signaling_service.dart` |
+| 얼굴 마스킹은 기기에서 처리 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처해 ML Kit 얼굴 감지를 돌리고, 얼굴 위치에 마스크 이미지를 덮습니다. | `lib/services/webrtc_face_detection.dart`, `lib/widgets/face_mask_overlay.dart` |
+| 관계 단계는 양쪽 동의로만 진행 | 통화 → 사진 공개 → 데이트 단계마다 양쪽 동의가 있어야 `call_partners` 상태가 바뀌고, 3단계에서 `chat_rooms`가 생성됩니다. 거절하면 상대 목록에서 삭제됩니다. | `server/server.js`, `lib/screens/call_history_screen.dart` |
+| 분석 · 예측 결과는 기기에 저장 | 대화 분석 결과는 앱 문서 디렉터리의 `analysis_results.json`에, 호감도 예측 결과는 `SharedPreferences`(`prediction_results`)에 최신순으로 저장하고 서버 DB에는 두지 않습니다. | `lib/services/analysis_storage_service.dart`, `prediction_storage_service.dart` (`jmh` 브랜치) |
+| 호감도 모델은 별도 서버로 분리 | Flask 모델 서버(포트 5001)가 시작 시 W&B Artifact의 `latest` 가중치를 받아 로드하고, 앱은 `POST /analyze` 점수를 호출합니다. | `server/model_server.py` |
+
 ## 주요 기능
 
 ### 1. 실시간 영상통화 & 얼굴 마스킹
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as 앱 A (발신)
+  participant S as Express · Socket.IO 서버
+  participant B as 앱 B (수신)
+  A->>S: GET /match
+  alt 접속 중인 다른 사용자 있음
+    S-->>A: 무작위 상대 ID
+  else 없음
+    S-->>A: 404 · 대기 목록에 등록
+  end
+  A->>S: call (offer)
+  S->>B: incomingCall (offer)
+  B->>S: acceptCall
+  S->>A: callAccepted
+  B->>S: callAnswered (answer)
+  S->>A: callAnswered (answer)
+  A-)B: ice-candidate (서버 중계, 양방향)
+  Note over A,B: 이후 영상은 WebRTC로 두 앱이 직접 연결
+  A->>S: endCall
+  S->>S: call_partners 통화 횟수 +1<br/>(3초 안 중복 저장 무시)
+  S->>B: callEnded
+```
+
+```mermaid
+flowchart LR
+  V[상대 영상] -->|0.5초마다| C[RepaintBoundary로<br/>프레임 캡처]
+  C --> D[ML Kit<br/>얼굴 감지]
+  D --> M[얼굴 위치에<br/>마스크 이미지 그림]
+  M --> V
+```
+
 - **WebRTC**(`flutter_webrtc`)로 실시간 영상통화 구현, 시그널링은 **Socket.IO** 서버가 중계
 - **Google ML Kit Face Detection**으로 상대 영상 프레임에서 얼굴 감지
 - **CustomPaint**와 **dart:ui**로 얼굴 위치에 마스크 이미지 오버레이
@@ -55,6 +122,19 @@
 ---
 
 ### 2. AI 기반 대화 분석
+
+```mermaid
+flowchart LR
+  R[통화 녹음<br/>AAC] --> STT[CLOVA Speech<br/>STT ko-KR]
+  STT --> T[대화문]
+  T --> O[OpenAI<br/>대화 분석 3개 기준]
+  T --> F[Flask 모델 서버<br/>POST /analyze]
+  O --> J[(analysis_results.json)]
+  F --> P[(SharedPreferences<br/>prediction_results)]
+  J & P --> UI[[결과 카드 · 상세 화면]]
+  W[(W&B Artifact<br/>latest 가중치)] -. 서버 시작 시 로드 .-> F
+```
+
 - 통화 음성을 `flutter_sound`로 녹음(AAC) → **네이버 CLOVA Speech API**로 STT(음성→텍스트, ko-KR 동기 처리)
 - 변환된 대화문을 **OpenAI Chat Completions API**로 전송해 세 기준으로 화자별 평가
   - 적절한 주제 탐색 (협력의 원리, 상호 호혜적 의사소통의 원리)
@@ -91,7 +171,9 @@ KoBigBird 발화 인코더, 양방향 GNTB, LSTM/CNN을 결합한 회귀 구조�
 - 연애 예능 프로그램 발화 수집 (조건: 남녀 1:1 대화 + 대화 후 인터뷰 호감도 응답)
 - 남성 입장 / 여성 입장 각각 `0(하락) / 0.5(유지) / 1(상승)` 하드 레이블 부여
 
-#### STEP 1. 라벨 스무딩 (Soft Labeling)
+<details>
+<summary><b>STEP 1. 라벨 스무딩 (Soft Labeling)</b></summary>
+
 
 `0 / 0.5 / 1` 이산값만으로는 호감 변화의 강도와 불확실성을 표현하기 어려워, 그래프 기반 라벨 전파로 `[0, 1]` 연속값을 만듭니다. (Pukdee et al., 2022의 weak supervision label propagation 구조)
 
@@ -119,7 +201,11 @@ Before:  0 ████  0.5 ██  1 ████   (3점 집중 이산 분포
 After:   ░▒▓█████▓▒░▒▓██████▓░   (다봉 연속 분포)
 ```
 
-#### STEP 2. KoBigBird · GNTB · LSTM/CNN 결합 회귀 — 대화 전후 맥락 학습
+</details>
+
+<details>
+<summary><b>STEP 2. KoBigBird · GNTB · LSTM/CNN 결합 회귀 — 대화 전후 맥락 학습</b></summary>
+
 
 세 부분을 차례로 결합한 구조입니다. ① **KoBigBird**가 현재 발화와 좌·우 문맥 발화를 인코딩하고 n-gram CNN으로 지역 표현을 더해 100차원 벡터로 만듭니다. ② **GNTB**(Generalized Neural Tensor Block)를 대화 순서대로 순방향·역방향으로 적용해 앞뒤 발화의 영향을 상태로 누적합니다. 양방향 GNTB 적용 방식은 BiERU(Li et al., 2022)를 참고했습니다. ③ 순·역방향 상태를 **LSTM**(연속 감정 흐름)과 **CNN**(지역 패턴)에 통과시킨 뒤 회귀 헤드가 발화별 점수를 냅니다. 구현은 `BiERULocal` 클래스입니다.
 
@@ -154,7 +240,11 @@ for t in range(T):
 | 기타 | batch 1(대화 단위), epoch 10, dropout 0.5, AMP(`autocast`, `GradScaler`), 학습/검증 80:20 |
 | 평가·기록 | MSE, MAE, Pearson 상관, W&B Artifact(`bieru-model-soft_label-*`) |
 
-#### STEP 3. 이진 분류 — 호감 상승 여부
+</details>
+
+<details>
+<summary><b>STEP 3. 이진 분류 — 호감 상승 여부</b></summary>
+
 
 ```python
 class KoBigBirdBinaryClassifier(nn.Module):
@@ -177,7 +267,11 @@ class KoBigBirdBinaryClassifier(nn.Module):
 - 학습: `BCEWithLogitsLoss`, AdamW lr 2e-5, batch 4, epoch 10, 학습/평가 80:20 (`random_state=42`)
 - 평가: sigmoid 후 0.5 임계값으로 Accuracy · F1 · 혼동행렬
 
-#### STEP 4. 모델 서빙
+</details>
+
+<details>
+<summary><b>STEP 4. 모델 서빙</b></summary>
+
 
 - 학습한 가중치를 **W&B Artifacts**로 버전 관리
 - `server/model_server.py`(Flask, 포트 5001)가 시작 시 `kobigbird-male-mlp-pearson`, `kobigbird-female-mlp-pearson`의 `latest` 아티팩트를 받아 `AutoModelForSequenceClassification`으로 로드
@@ -186,6 +280,8 @@ class KoBigBirdBinaryClassifier(nn.Module):
 
 > 서빙 아티팩트는 Hugging Face 분류 모델 형식이며, 이를 만든 학습 노트북은 `likeability_expectation` 저장소에 포함되어 있지 않습니다. 위 STEP 2·3의 노트북은 `state_dict`를 저장합니다.
 
+</details>
+
 > 참고: Li, Wei, et al. *"BiERU: Bidirectional emotional recurrent unit for conversational sentiment analysis."* Neurocomputing 467 (2022)  
 > 참고: Pukdee, Rattana, et al. *"Label propagation with weak supervision."* arXiv:2210.03594 (2022)  
 > 참고: Matsuo, Kazuya, et al. *"Enhancing Impression Change Prediction in Speed Dating Simulations."* arXiv:2502.04706 (2025)
@@ -193,6 +289,21 @@ class KoBigBirdBinaryClassifier(nn.Module):
 ---
 
 ### 4. 실시간 채팅 기능
+
+관계 단계와 채팅방 생성 흐름입니다.
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> 통화: 통화 종료 시 call_partners 기록
+  통화 --> 사진공개: 두 사람 모두 동의
+  사진공개 --> 데이트: 두 사람 모두 동의
+  데이트 --> 채팅: chat_rooms 생성
+  통화 --> 삭제: 한 명이라도 거절
+  사진공개 --> 삭제: 한 명이라도 거절
+  삭제 --> [*]
+```
+
 - **Socket.IO** 기반의 1:1 채팅 및 채팅방 목록
 - 3단계(데이트)에 양쪽이 동의하면 서버가 채팅방을 생성
 - 메시지 실시간 송수신(`joinRoom`, `sendMessage`, `receiveMessage`), 대화 기록은 MySQL에 저장
@@ -200,6 +311,15 @@ class KoBigBirdBinaryClassifier(nn.Module):
 ---
 
 ### 5. 데이트 장소 추천
+
+```mermaid
+flowchart LR
+  ME[내 위치<br/>Geolocator] --> MID[두 좌표의<br/>중간 지점]
+  PT[데이트 단계 상대 중 선택<br/>가입 때 저장한 좌표] --> MID
+  MID --> API[TourAPI<br/>locationBasedList1<br/>반경 5km]
+  API --> CARD[[장소 카드]]
+```
+
 - 내 현재 위치(Geolocator)와 선택한 상대방 위치의 **중간 좌표**를 계산
 - **한국관광공사 TourAPI**(`KorService1/locationBasedList1`)로 반경 5km 내 장소 조회, 카드형 UI로 제공
 
@@ -210,60 +330,26 @@ class KoBigBirdBinaryClassifier(nn.Module):
 - **랜덤 매칭**: 서버에 접속한 사용자 중 무작위 연결, 없으면 대기 목록에 등록
 - **관계 단계**: 통화 → 사진 공개 → 데이트, 각 단계는 양쪽 동의가 모두 있어야 진행. 거절하면 상대 목록에서 삭제
 - **대화 분석/예측 결과 조회**: 카드형 UI, 상세 화면
-- **설정**: 주소(위치) 수정은 현재 위치로 장소 추천에 쓰는 좌표를 갱신, 로그아웃은 기기에 저장된 로그인 정보 삭제, 회원탈퇴는 계정과 통화 상대·채팅 기록·프로필 이미지 삭제
+- **설정**: 주소 수정, 로그아웃, 회원탈퇴
+
+---
 
 ---
 
 ## 화면 구성
 
-- **시작 페이지**: 앱 소개, 로그인/회원가입 버튼
-- **회원가입 페이지**: 아이디, 비밀번호, 성별, 주소, 닉네임, 프로필 사진 입력
-- **로그인 페이지**: 아이디, 비밀번호 입력
-- **메인 페이지**: 하단 네비게이션(메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 네비게이션(대화 분석, 예측 결과)
-- **영상통화 페이지**: 얼굴 마스킹 적용된 영상통화
-- **대화분석 페이지**: 통화별 분석 결과 카드, 상세 화면
-- **호감도 예측 페이지**: 통화별 호감도 예측 결과 카드
-- **데이트 장소 추천 페이지**: 두 사람의 위치 기반 추천 장소 카드 UI
-- **채팅방 페이지**: 1:1 채팅, 채팅방 목록, 실시간 메시지
-- **설정 페이지**: 내 닉네임·아이디·프로필 사진, 주소(위치) 수정, 로그아웃, 회원탈퇴
+| 화면 | 내용 |
+|------|------|
+| 시작 · 로그인 · 회원가입 | 앱 소개, 아이디 · 비밀번호 로그인, 성별 · 주소 · 닉네임 · 프로필 사진 입력 |
+| 메인 | 하단 내비게이션(메인, 데이트 장소 추천, 채팅방, 설정), 상대방 연결 버튼, 상단 내비게이션(대화 분석, 예측 결과) |
+| 영상통화 | 얼굴 마스킹이 적용된 영상통화 |
+| 대화 분석 · 호감도 예측 | 통화별 결과 카드와 상세 화면 |
+| 데이트 장소 추천 | 두 사람의 위치 기반 추천 장소 카드 |
+| 채팅방 | 1:1 채팅, 채팅방 목록, 실시간 메시지 |
+| 설정 | 주소 수정, 로그아웃, 회원탈퇴 |
 
----
+| 시작 | 회원가입 |
+|:----:|:--------:|
+| <img src="docs/readme/start.png" width="200"> | <img src="docs/readme/signup.png" width="200"> |
 
-## 시작하기
-
-**1. 저장소 클론**
-```bash
-git clone -b mjs https://github.com/cres17/CapstoneDesign.git
-cd CapstoneDesign
-```
-
-**2. MySQL** — 데이터베이스를 만들고 스키마 적용 (`users`, `call_partners`, `chat_rooms`, `chat_messages`)
-```bash
-mysql -u <user> -p -e "CREATE DATABASE daon DEFAULT CHARACTER SET utf8mb4"
-mysql -u <user> -p daon < server/schema.sql
-```
-
-**3. Node 서버** — `server/.env.example`을 `server/.env`로 복사해 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET`, `PORT`(기본 5000) 설정 후
-```bash
-cd server
-npm install
-node server.js
-```
-프로필 이미지는 저장소의 `assets/profile/<id>.png`에 저장되고 `/assets/profile/…`, `/user-profile/:id`로 제공됩니다.
-
-**4. 모델 서버** — W&B 로그인(`wandb login`) 후. 포트 5001, 디버그 모드는 `MODEL_SERVER_DEBUG=1`일 때만 켜집니다.
-```bash
-pip install flask torch transformers wandb
-python server/model_server.py
-```
-
-**5. Flutter 앱** — 루트의 `.env.example`을 `.env`로 복사해 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`, `TOUR_API_KEY`(TourAPI 디코딩 키)를 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경합니다. Node 서버(5000)와 모델 서버(5001)는 같은 `serverIp`를 씁니다.
-```bash
-flutter pub get
-flutter run
-```
-
-**테스트**
-```bash
-flutter test   # 예측 서버 호출·성별 변환 단위 테스트 (.env 파일이 있어야 빌드됨)
-```
+`mjs` 브랜치를 Flutter 웹으로 빌드해 촬영했습니다. 로그인 이후 화면(매칭, 영상통화, 분석, 채팅)은 MySQL과 Node 서버(`server/server.js`)가 있어야 하므로 이 두 화면만 실었습니다.
