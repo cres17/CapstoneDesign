@@ -11,14 +11,11 @@ import 'package:capstone_porj/models/call_result_data.dart';
 import 'package:capstone_porj/screens/call_history_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  final String userGender; // ✅ 필드 추가
-
-  const MainScreen({Key? key, required this.userGender}) : super(key: key);
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
-
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
@@ -81,17 +78,11 @@ class _MainScreenState extends State<MainScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.psychology_outlined),
-            onPressed: () async {
-              final userGender = widget.userGender; // MainScreen에서 전달받은 성별
-              final audioPath = "/storage/emulated/0/Download/recording.wav"; // 녹음된 파일 경로
-
+            onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => PredictionScreen(
-                    userGender: userGender,
-                    audioPath: audioPath,
-                  ),
+                  builder: (context) => const PredictionScreen(),
                 ),
               );
             },

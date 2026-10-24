@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -14,6 +15,7 @@ class CallHistoryScreen extends StatefulWidget {
 class _CallHistoryScreenState extends State<CallHistoryScreen> {
   List<dynamic> _partners = [];
   bool _isLoading = true;
+  Map<String, String> _userIdToNickname = {}; // userId → 닉네임 매핑
 
   @override
   void initState() {
@@ -26,13 +28,30 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       _isLoading = true;
     });
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
+    final userId = prefs.getInt('user_id');
+    print(
+      '[CallHistoryScreen] SharedPreferences에서 user_id로 user_id 읽음: $userId',
+    );
     if (userId == null) return;
     final url = Uri.parse('${AppConfig.serverUrl}/call-history/$userId');
-    final res = await http.get(url);
+    final res = await http.get(url, headers: await ApiAuth.headers(json: false));
+    print('서버 응답: ${res.body}');
     if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final partners = body['partners'] ?? [];
+      print('partners: $partners');
+      // user_id 목록 추출
+      final userIds =
+          partners
+              .map((e) => e['partner_id'].toString())
+              .toSet()
+              .cast<String>();
+      print('userIds: $userIds');
+      final nicknameMap = await _fetchNicknames(userIds);
+      print('nicknameMap: $nicknameMap');
       setState(() {
-        _partners = jsonDecode(res.body)['partners'];
+        _partners = partners;
+        _userIdToNickname = nicknameMap;
         _isLoading = false;
       });
     } else {
@@ -42,11 +61,33 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     }
   }
 
+  // user_id → 닉네임 매핑 함수
+  Future<Map<String, String>> _fetchNicknames(Set<String> userIds) async {
+    Map<String, String> map = {};
+    for (final userId in userIds) {
+      try {
+        final res = await http.get(
+          Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+          headers: await ApiAuth.headers(json: false),
+        );
+        if (res.statusCode == 200) {
+          final json = jsonDecode(res.body);
+          map[userId] = json['nickname'] ?? userId;
+        } else {
+          map[userId] = userId;
+        }
+      } catch (_) {
+        map[userId] = userId;
+      }
+    }
+    return map;
+  }
+
   // 카드 클릭 시 동의/거절 다이얼로그
   void _showStepDialog(Map partner) async {
     final prefs = await SharedPreferences.getInstance();
-    final myUserId = prefs.getInt('userId');
-    final partnerId = partner['partner_id'];
+    final myUserId = prefs.getInt('user_id');
+    final partnerId = partner['partner_id']; // 반드시 숫자(user_id)여야 함
     final step = partner['step'] ?? 1;
     final myAgree = partner['my_agree'] ?? 0;
     final partnerAgree = partner['partner_agree'] ?? 0;
@@ -62,6 +103,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 title: const Text('상대방 사진'),
                 content: Image.network(
                   '${AppConfig.serverUrl}/user-profile/$partnerId',
+                  headers: ApiAuth.imageHeaders(),
                   errorBuilder:
                       (context, error, stackTrace) => const Text('이미지 없음'),
                 ),
@@ -105,50 +147,44 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       final url = Uri.parse('${AppConfig.serverUrl}/call-partner/step');
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: await ApiAuth.headers(),
         body: jsonEncode({
-          'userId': myUserId,
-          'partnerId': partnerId,
+          'user_id': myUserId,
+          'partnerId': partnerId, // 숫자(user_id)로 보냄
           'agree': result,
+          'nextStep': step == 2 ? 3 : 2, // 단계에 따라 2 또는 3
         }),
       );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        if (data['step'] == 2) {
-          // 둘 다 동의 → 사진 공개
+        if (data['rejected'] == true) {
+          // 거절하면 서버가 두 사람의 기록을 지우므로 목록에서도 뺀다
+          setState(() {
+            _partners.remove(partner);
+          });
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('서로 동의하여 사진이 공개됩니다!')));
+          ).showSnackBar(const SnackBar(content: Text('거절했습니다. 목록에서 삭제됩니다.')));
+          return;
+        }
+        if (data['step'] == 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('서로 동의하여 데이트 단계로 진입합니다!')),
+          );
+          setState(() {
+            partner['step'] = 3;
+            partner['my_agree'] = 2;
+            partner['partner_agree'] = 2;
+          });
+        } else if (data['step'] == 2) {
           setState(() {
             partner['step'] = 2;
             partner['my_agree'] = 1;
-            partner['partner_agree'] = 1;
           });
-        } else if (data['deleted'] == true) {
-          // 거절 → call_partners에서 삭제
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('상대방이 거절하여 연결이 종료되었습니다.')),
-          );
-          setState(() {
-            _partners.removeWhere((p) => p['partner_id'] == partnerId);
-          });
-          // 거절 시 안내 다이얼로그 추가
-          showDialog(
-            context: context,
-            builder:
-                (context) => AlertDialog(
-                  title: const Text('알림'),
-                  content: const Text('거절하셨습니다.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('닫기'),
-                    ),
-                  ],
-                ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('사진 공개 단계로 진입합니다!')));
         } else {
-          // 내 동의만 반영
           setState(() {
             partner['my_agree'] = 1;
           });
@@ -187,7 +223,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               content: Text(
                 partnerAgree == 2
                     ? '상대방이 이미 데이트에 동의했습니다. 데이트에 동의하시겠습니까?'
-                    : '서로 데이트에 동의하면 연락처가 공개됩니다.\n진행하시겠습니까?',
+                    : '서로 데이트에 동의하면 채팅방이 개설됩니다.\n진행하시겠습니까?',
               ),
               actions: [
                 TextButton(
@@ -208,18 +244,27 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       final url = Uri.parse('${AppConfig.serverUrl}/call-partner/step');
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: await ApiAuth.headers(),
         body: jsonEncode({
-          'userId': myUserId,
-          'partnerId': partnerId,
+          'user_id': myUserId,
+          'partnerId': partnerId, // 숫자(user_id)로 보냄
           'agree': result,
-          'nextStep': 3,
+          'nextStep': step == 2 ? 3 : 2, // 단계에 따라 2 또는 3
         }),
       );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
+        if (data['rejected'] == true) {
+          // 거절하면 서버가 두 사람의 기록을 지우므로 목록에서도 뺀다
+          setState(() {
+            _partners.remove(partner);
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('거절했습니다. 목록에서 삭제됩니다.')));
+          return;
+        }
         if (data['step'] == 3) {
-          // 데이트 단계 진입
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('서로 동의하여 데이트 단계로 진입합니다!')),
           );
@@ -269,7 +314,8 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       itemBuilder: (context, index) {
         final partner = _partners[index];
         final step = partner['step'] ?? 1;
-        final partnerId = partner['partner_id'];
+        final partnerId = partner['partner_id'].toString();
+        final partnerNickname = _userIdToNickname[partnerId] ?? partnerId;
 
         // 2, 3단계에서만 썸네일 노출
         final showProfile = (step == 2 || step == 3);
@@ -286,6 +332,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                         backgroundColor: Colors.grey[200],
                         backgroundImage: NetworkImage(
                           '${AppConfig.serverUrl}/user-profile/$partnerId',
+                          headers: ApiAuth.imageHeaders(),
                         ),
                         onBackgroundImageError: (_, __) {},
                         child: Container(), // 이미지 없을 때 기본 아이콘 안보이게
@@ -295,7 +342,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                       backgroundColor: Colors.grey[200],
                       child: Icon(Icons.person, color: Colors.grey[600]),
                     ),
-            title: Text('상대방 유저ID: $partnerId'),
+            title: Text('상대방: $partnerNickname'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -346,7 +393,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   // 상대방 이미지 다이얼로그 함수 추가
-  void _showPartnerImageDialog(int partnerId) {
+  void _showPartnerImageDialog(String partnerId) {
     showDialog(
       context: context,
       builder:
@@ -354,6 +401,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             title: const Text('상대방 프로필 이미지'),
             content: Image.network(
               '${AppConfig.serverUrl}/user-profile/$partnerId',
+              headers: ApiAuth.imageHeaders(),
               fit: BoxFit.cover,
               errorBuilder:
                   (context, error, stackTrace) =>
