@@ -1,28 +1,19 @@
 class AppConfig {
-  // 서버 IP 주소 설정 - 여기만 수정하면 됨
-  static const String serverIp = "172.30.37.234";
-  static const int serverPort = 5000;
+  // 서버 주소. 빌드할 때 --dart-define=SERVER_URL=https://api.example.com 으로 바꿀 수 있다.
+  // 실제 배포에서는 비밀번호와 토큰이 평문으로 오가지 않도록 HTTPS 주소를 지정한다.
+  static const String serverUrl = String.fromEnvironment(
+    'SERVER_URL',
+    defaultValue: 'http://172.30.37.234:5000',
+  );
 
-  // 호감도 예측 모델 서버(Flask, server/model_server.py) 포트. 같은 serverIp를 쓴다
-  static const int modelServerPort = 5001;
-
-  // 서버 URL 반환 (http)
-  static String get serverUrl => "http://$serverIp:$serverPort";
-
-  // 호감도 예측 API URL
-  static String get modelServerUrl =>
-      "http://$serverIp:$modelServerPort/analyze";
-
-  // WebSocket URL 반환 (ws)
-  static String get wsUrl => "ws://$serverIp:$serverPort";
+  // 호감도 예측 API. 모델 서버(model_server.py)는 Node 서버 안쪽에 두고 이 경로로만 호출한다
+  static String get predictionUrl => '$serverUrl/api/predict';
 
   // API 엔드포인트 생성 헬퍼
   static String getApiUrl(String endpoint) {
     return "$serverUrl/$endpoint";
   }
 
-  // 매칭 API URL 생성 헬퍼
-  static String getMatchingUrl(int userId) {
-    return "$serverUrl/match?userId=$userId";
-  }
+  // 매칭 API URL (사용자는 서버가 토큰으로 판별한다)
+  static String get matchingUrl => "$serverUrl/match";
 }

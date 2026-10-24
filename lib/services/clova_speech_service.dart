@@ -1,20 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:capstone_porj/config/app_config.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class ClovaSpeechService {
   Future<String?> requestSpeechToText(String filePath) async {
-    final secret = dotenv.env['CLOVA_SPEECH_SECRET'];
-    final url = dotenv.env['CLOVA_SPEECH_URL'];
-
-    if (secret == null || url == null) {
-      print(
-        '[ClovaSpeechService] 환경 변수(CLOVA_SPEECH_SECRET, CLOVA_SPEECH_URL)가 null입니다.',
-      );
-      return null;
-    }
+    // CLOVA Speech 키는 서버에만 있고, 앱은 녹음 파일을 서버의 /api/stt로 보낸다.
+    // 서버는 CLOVA 응답을 그대로 돌려주므로 아래 파싱은 같다.
+    final url = '${AppConfig.serverUrl}/api/stt';
 
     final file = File(filePath);
     if (!await file.exists()) {
@@ -29,14 +24,13 @@ class ClovaSpeechService {
 
     // 요청 전 상세 로그 출력
     print('--- [ClovaSpeechService] API 요청 준비 ---');
-    print('API URL: $url');
     print('파일 경로: $filePath');
     print('파일 크기: ${bytes.length} bytes');
     print('fields: diarization=true, language=ko-KR');
     print('----------------------------------------');
 
-    final request = http.MultipartRequest('POST', Uri.parse(url!));
-    request.headers['X-CLOVASPEECH-API-KEY'] = secret!;
+    final request = http.MultipartRequest('POST', Uri.parse(url));
+    request.headers.addAll(await ApiAuth.headers(json: false));
     request.headers['Accept'] = 'application/json';
     request.files.add(
       http.MultipartFile.fromBytes(
@@ -46,15 +40,6 @@ class ClovaSpeechService {
         contentType: MediaType('audio', 'aac'),
       ),
     );
-    // 공식 문서에 맞게 params를 JSON 문자열로 추가
-    final params = jsonEncode({
-      "language": "ko-KR",
-      "completion": "sync",
-      "callback": "",
-      "fullText": true,
-    });
-    request.fields['params'] = params;
-    request.fields['type'] = "application/json";
 
     try {
       final streamedResponse = await request.send();

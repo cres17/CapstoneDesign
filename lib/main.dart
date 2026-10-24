@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/api_auth.dart';
 import 'screens/splash/splash_screen.dart';
 import 'constants/app_theme.dart';
 import 'screens/main/main_screen.dart';
@@ -13,7 +13,8 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
+  // 외부 API 키는 서버에만 둔다. 저장된 로그인 토큰만 미리 읽어 둔다
+  await ApiAuth.load();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(
     MultiProvider(

@@ -11,7 +11,9 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ✅ W&B 모델 로드 함수
 def load_model(run_name):
-    artifact = wandb.Api().artifact(f"{ENTITY}/{PROJECT}/{run_name}:latest", type="model")
+    # 배포 시 MODEL_ARTIFACT_VERSION에 v3 같은 고정 버전을 지정하면 latest 변경에 영향받지 않는다
+    version = os.environ.get("MODEL_ARTIFACT_VERSION", "latest")
+    artifact = wandb.Api().artifact(f"{ENTITY}/{PROJECT}/{run_name}:{version}", type="model")
     model_dir = artifact.download()
     model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(DEVICE)
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -64,7 +66,8 @@ def analyze():
 if __name__ == "__main__":
     # 디버그 모드는 Werkzeug 디버거가 외부에 열리지 않도록 기본으로 끈다 (MODEL_SERVER_DEBUG=1일 때만 사용)
     app.run(
-        host=os.environ.get("MODEL_SERVER_HOST", "0.0.0.0"),
+        # 앱은 Node 서버의 /api/predict를 거쳐 호출하므로 기본은 같은 서버 안에서만 연다
+        host=os.environ.get("MODEL_SERVER_HOST", "127.0.0.1"),
         port=int(os.environ.get("MODEL_SERVER_PORT", "5001")),
         debug=os.environ.get("MODEL_SERVER_DEBUG") == "1",
     )

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import '../../constants/app_colors.dart';
 import '../../services/prediction_storage_service.dart';
 import 'package:intl/intl.dart';
@@ -89,6 +90,7 @@ class _PredictionScreenState extends State<PredictionScreen> with RouteAware {
       try {
         final res = await http.get(
           Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+          headers: await ApiAuth.headers(json: false),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);

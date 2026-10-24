@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:flutter/foundation.dart';
 // 웹 환경에서만 dart:html 임포트
 import 'dart:ui' as ui;
@@ -38,7 +39,7 @@ class MatchingService {
       try {
         // AppConfig 사용
         final response = await http
-            .get(Uri.parse(AppConfig.getMatchingUrl(userId as int)))
+            .get(Uri.parse(AppConfig.matchingUrl), headers: await ApiAuth.headers(json: false))
             .timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {

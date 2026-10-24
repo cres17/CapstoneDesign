@@ -5,16 +5,17 @@ import 'package:capstone_porj/services/prediction_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({'jwtToken': 'test-token'});
+  });
+
   group('AppConfig', () {
-    test('모델 서버 주소는 serverIp와 5001 포트의 /analyze', () {
-      expect(
-        AppConfig.modelServerUrl,
-        'http://${AppConfig.serverIp}:${AppConfig.modelServerPort}/analyze',
-      );
-      expect(AppConfig.modelServerPort, 5001);
-      expect(AppConfig.serverUrl, 'http://${AppConfig.serverIp}:5000');
+    test('예측은 Node 서버의 /api/predict로만 호출한다', () {
+      expect(AppConfig.predictionUrl, '${AppConfig.serverUrl}/api/predict');
+      expect(AppConfig.matchingUrl, '${AppConfig.serverUrl}/match');
     });
   });
 
@@ -35,7 +36,7 @@ void main() {
   });
 
   group('PredictionService.requestScore', () {
-    test('대화문과 성별을 모델 서버 /analyze로 보내고 점수를 돌려준다', () async {
+    test('대화문과 성별을 토큰과 함께 /api/predict로 보내고 점수를 돌려준다', () async {
       late http.Request sent;
       final client = MockClient((request) async {
         sent = request;
@@ -50,7 +51,8 @@ void main() {
 
       expect(score, 0.83);
       expect(sent.method, 'POST');
-      expect(sent.url.toString(), AppConfig.modelServerUrl);
+      expect(sent.url.toString(), AppConfig.predictionUrl);
+      expect(sent.headers['Authorization'], 'Bearer test-token');
       expect(jsonDecode(sent.body), {
         'input_text': '남: 안녕하세요\n여: 반가워요',
         'gender': 'female',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -42,7 +43,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _fetchChatRooms() async {
     final url = Uri.parse('${AppConfig.serverUrl}/chat-rooms/$_userId');
-    final res = await http.get(url);
+    final res = await http.get(url, headers: await ApiAuth.headers(json: false));
     if (res.statusCode == 200) {
       final List<dynamic> rooms = jsonDecode(res.body)['rooms'];
       // user_id 목록 추출
@@ -67,6 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
       try {
         final res = await http.get(
           Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+          headers: await ApiAuth.headers(json: false),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);
@@ -106,6 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
             backgroundColor: Colors.grey[200],
             backgroundImage: NetworkImage(
               '${AppConfig.serverUrl}/user-profile/$partnerId',
+              headers: ApiAuth.imageHeaders(),
             ),
           ),
           title: Text('상대방: $partnerNickname'), // 닉네임으로 표시
@@ -149,7 +152,7 @@ class ChatRoomPage extends StatefulWidget {
 }
 
 class _ChatRoomPageState extends State<ChatRoomPage> {
-  late IO.Socket socket;
+  IO.Socket? socket;
   List<Map<String, dynamic>> messages = [];
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = true;
@@ -172,19 +175,24 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     setState(() {});
   }
 
-  void _connectSocket() {
-    socket = IO.io(
-      AppConfig.wsUrl,
+  Future<void> _connectSocket() async {
+    // 서버는 연결 시 보낸 토큰으로 사용자를 확인하고, 참여한 방에만 입장시킨다
+    final token = await ApiAuth.token();
+    if (!mounted) return;
+    final s = IO.io(
+      AppConfig.serverUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
+          .setAuth({'token': token ?? ''})
           .disableAutoConnect()
           .build(),
     );
-    socket.connect();
-    socket.onConnect((_) {
-      socket.emit('joinRoom', widget.roomId);
+    socket = s;
+    s.connect();
+    s.onConnect((_) {
+      s.emit('joinRoom', widget.roomId);
     });
-    socket.on('receiveMessage', (data) {
+    s.on('receiveMessage', (data) {
       if (mounted && data['roomId'] == widget.roomId) {
         setState(() {
           messages.add({
@@ -204,7 +212,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     final url = Uri.parse(
       '${AppConfig.serverUrl}/chat-messages/${widget.roomId}',
     );
-    final res = await http.get(url);
+    final res = await http.get(url, headers: await ApiAuth.headers(json: false));
+    if (!mounted) return;
     if (res.statusCode == 200) {
       final List<dynamic> msgList = jsonDecode(res.body)['messages'];
       setState(() {
@@ -221,7 +230,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    socket.emit('sendMessage', {
+    socket?.emit('sendMessage', {
       'roomId': widget.roomId,
       'senderId': widget.myUserId,
       'message': text,
@@ -231,7 +240,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
   @override
   void dispose() {
-    socket.dispose();
+    socket?.dispose();
     _controller.dispose();
     super.dispose();
   }

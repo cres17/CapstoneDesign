@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../config/app_config.dart';
@@ -47,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ImageProvider? get _profileImage {
     if (_profileImageFile != null) return FileImage(_profileImageFile!);
     if (_userId != null) {
-      return NetworkImage('${AppConfig.serverUrl}/user-profile/$_userId');
+      return NetworkImage('${AppConfig.serverUrl}/user-profile/$_userId', headers: ApiAuth.imageHeaders());
     }
     return null;
   }

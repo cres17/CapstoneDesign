@@ -1,4 +1,5 @@
 import 'package:capstone_porj/screens/analysis/analysis_detail_screen.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../services/analysis_storage_service.dart';
@@ -96,6 +97,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with RouteAware {
       try {
         final res = await http.get(
           Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+          headers: await ApiAuth.headers(json: false),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);

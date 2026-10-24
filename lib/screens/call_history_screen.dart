@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -33,7 +34,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     );
     if (userId == null) return;
     final url = Uri.parse('${AppConfig.serverUrl}/call-history/$userId');
-    final res = await http.get(url);
+    final res = await http.get(url, headers: await ApiAuth.headers(json: false));
     print('서버 응답: ${res.body}');
     if (res.statusCode == 200) {
       final body = jsonDecode(res.body);
@@ -67,6 +68,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       try {
         final res = await http.get(
           Uri.parse('${AppConfig.serverUrl}/users/$userId'),
+          headers: await ApiAuth.headers(json: false),
         );
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);
@@ -101,6 +103,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 title: const Text('상대방 사진'),
                 content: Image.network(
                   '${AppConfig.serverUrl}/user-profile/$partnerId',
+                  headers: ApiAuth.imageHeaders(),
                   errorBuilder:
                       (context, error, stackTrace) => const Text('이미지 없음'),
                 ),
@@ -144,7 +147,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       final url = Uri.parse('${AppConfig.serverUrl}/call-partner/step');
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: await ApiAuth.headers(),
         body: jsonEncode({
           'user_id': myUserId,
           'partnerId': partnerId, // 숫자(user_id)로 보냄
@@ -241,7 +244,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       final url = Uri.parse('${AppConfig.serverUrl}/call-partner/step');
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: await ApiAuth.headers(),
         body: jsonEncode({
           'user_id': myUserId,
           'partnerId': partnerId, // 숫자(user_id)로 보냄
@@ -329,6 +332,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                         backgroundColor: Colors.grey[200],
                         backgroundImage: NetworkImage(
                           '${AppConfig.serverUrl}/user-profile/$partnerId',
+                          headers: ApiAuth.imageHeaders(),
                         ),
                         onBackgroundImageError: (_, __) {},
                         child: Container(), // 이미지 없을 때 기본 아이콘 안보이게
@@ -397,6 +401,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             title: const Text('상대방 프로필 이미지'),
             content: Image.network(
               '${AppConfig.serverUrl}/user-profile/$partnerId',
+              headers: ApiAuth.imageHeaders(),
               fit: BoxFit.cover,
               errorBuilder:
                   (context, error, stackTrace) =>

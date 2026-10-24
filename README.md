@@ -28,13 +28,13 @@
 
 | 구간 | 흐름 |
 |------|------|
-| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록 |
+| 회원·매칭 | 앱이 Express REST API로 가입·로그인(bcrypt, JWT 7일)·랜덤 매칭·통화 단계 변경을 요청하고, 서버는 MySQL `users`, `call_partners`에 기록. 가입·로그인 외 모든 요청과 Socket.IO 연결은 JWT로 사용자를 확인 |
 | 영상통화 | 두 앱이 Socket.IO로 offer · answer · ICE candidate를 주고받은 뒤 WebRTC로 직접 영상 연결 |
 | 얼굴 마스킹 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처 → ML Kit 얼굴 감지 → 얼굴 위치에 마스크 이미지 오버레이 |
-| 통화 후 분석 | 녹음 파일(AAC) → CLOVA Speech STT → 대화문을 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기에 저장(대화 분석은 `analysis_results.json` 파일, 호감도 예측은 `SharedPreferences`) |
+| 통화 후 분석 | 녹음 파일(AAC) → Node 서버가 중계하는 CLOVA Speech STT → 대화문을 Node 서버를 거쳐 OpenAI(대화 분석)와 Flask 모델 서버(호감도 점수)에 각각 전송 → 결과를 기기에 저장(대화 분석은 `analysis_results.json` 파일, 호감도 예측은 `SharedPreferences`) |
 | 관계 단계 | 1단계 통화 → 양쪽 동의 시 2단계 사진 공개 → 양쪽 동의 시 3단계 데이트, 이때 `chat_rooms` 생성 |
 | 채팅 | Socket.IO `joinRoom` · `sendMessage`로 실시간 송수신, 메시지는 MySQL `chat_messages`에 저장 |
-| 장소 추천 | 앱이 내 위치(Geolocator)와 상대 위치의 중간 좌표로 TourAPI `locationBasedList1`을 직접 조회 |
+| 장소 추천 | 앱이 내 위치(Geolocator)와 상대 위치의 중간 좌표를 Node 서버(`/api/date-spots`)로 보내고, 서버가 TourAPI `locationBasedList1`을 조회 |
 
 ---
 
@@ -46,23 +46,25 @@ git clone https://github.com/cres17/CapstoneDesign.git
 cd CapstoneDesign
 ```
 
-**2. Node 서버** — `server/.env`에 `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`, `JWT_SECRET` 설정 후
+**2. Node 서버** — `server/.env.example`을 `server/.env`로 복사해 DB 접속 정보, `JWT_SECRET`(32자 이상), 외부 API 키(`OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`, `TOUR_API_KEY`)를 채우고 `server/schema.sql`로 테이블을 만든 뒤
 ```bash
 cd server
-npm install
+npm ci
 node server.js
 ```
 
-**3. 모델 서버** — W&B 로그인 후
+외부 API 키는 서버에만 두고 앱에는 넣지 않습니다. `JWT_SECRET`이 없거나 32자보다 짧으면 서버가 시작되지 않습니다.
+
+**3. 모델 서버** — W&B 로그인 후 Node 서버와 같은 서버에서 실행합니다. 기본으로 `127.0.0.1:5001`에만 열리고, 앱은 Node 서버의 `/api/predict`를 거쳐 호출합니다. `MODEL_ARTIFACT_VERSION`으로 가중치 버전을 고정할 수 있습니다.
 ```bash
 pip install flask torch transformers wandb
 python server/model_server.py
 ```
 
-**4. Flutter 앱** — 화면 연결이 끝난 `jmh` 브랜치 기준(`git checkout jmh`). 루트 `.env`에 `OPENAI_API_KEY`, `CLOVA_SPEECH_SECRET`, `CLOVA_SPEECH_URL`을 넣고, `lib/config/app_config.dart`의 `serverIp`를 서버 주소로 변경
+**4. Flutter 앱** — 서버 주소는 빌드할 때 `--dart-define=SERVER_URL=...`로 지정합니다. 배포 환경에서는 비밀번호와 토큰이 평문으로 오가지 않도록 HTTPS 주소를 씁니다.
 ```bash
 flutter pub get
-flutter run
+flutter run --dart-define=SERVER_URL=http://<서버 IP>:5000
 ```
 
 ---
@@ -74,8 +76,9 @@ flutter run
 | 영상은 P2P, 서버는 시그널링만 | Socket.IO 서버가 offer · answer · ICE candidate만 중계하고, 영상은 WebRTC로 두 앱이 직접 연결합니다. | `server/server.js`, `lib/services/signaling_service.dart` |
 | 얼굴 마스킹은 기기에서 처리 | 상대 영상을 `RepaintBoundary`로 0.5초마다 캡처해 ML Kit 얼굴 감지를 돌리고, 얼굴 위치에 마스크 이미지를 덮습니다. | `lib/services/webrtc_face_detection.dart`, `lib/widgets/face_mask_overlay.dart` |
 | 관계 단계는 양쪽 동의로만 진행 | 통화 → 사진 공개 → 데이트 단계마다 양쪽 동의가 있어야 `call_partners` 상태가 바뀌고, 3단계에서 `chat_rooms`가 생성됩니다. 거절하면 상대 목록에서 삭제됩니다. | `server/server.js`, `lib/screens/call_history_screen.dart` |
-| 분석 · 예측 결과는 기기에 저장 | 대화 분석 결과는 앱 문서 디렉터리의 `analysis_results.json`에, 호감도 예측 결과는 `SharedPreferences`(`prediction_results`)에 최신순으로 저장하고 서버 DB에는 두지 않습니다. | `lib/services/analysis_storage_service.dart`, `prediction_storage_service.dart` (`jmh` 브랜치) |
-| 호감도 모델은 별도 서버로 분리 | Flask 모델 서버(포트 5001)가 시작 시 W&B Artifact의 `latest` 가중치를 받아 로드하고, 앱은 `POST /analyze` 점수를 호출합니다. | `server/model_server.py` |
+| 분석 · 예측 결과는 기기에 저장 | 대화 분석 결과는 앱 문서 디렉터리의 `analysis_results.json`에, 호감도 예측 결과는 `SharedPreferences`(`prediction_results`)에 최신순으로 저장하고 서버 DB에는 두지 않습니다. | `lib/services/analysis_storage_service.dart`, `prediction_storage_service.dart` |
+| 호감도 모델은 별도 서버로 분리 | Flask 모델 서버(포트 5001)가 시작 시 W&B Artifact 가중치(기본 `latest`, `MODEL_ARTIFACT_VERSION`으로 고정 가능)를 받아 로드합니다. 모델 서버는 내부 주소에만 열고, 앱은 Node 서버의 `POST /api/predict`를 거쳐 점수를 받습니다. | `server/model_server.py`, `server/server.js` |
+| 사용자 확인은 서버가 토큰으로 | 요청 본문이나 경로의 사용자 id를 믿지 않고 JWT의 사용자로만 조회 · 변경합니다. 채팅은 참여한 방에만 입장 · 전송할 수 있고, 상대 프로필 사진은 2단계(사진 공개) 이상에서만 내려줍니다. 외부 API 키(OpenAI · CLOVA · TourAPI)는 서버에만 두고 앱은 서버를 거쳐 호출합니다. | `server/server.js`, `lib/services/api_auth.dart` |
 
 ## 주요 기능
 
@@ -125,10 +128,10 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  R[통화 녹음<br/>AAC] --> STT[CLOVA Speech<br/>STT ko-KR]
+  R[통화 녹음<br/>AAC] --> STT[CLOVA Speech<br/>Node 서버 /api/stt 경유]
   STT --> T[대화문]
-  T --> O[OpenAI<br/>대화 분석 3개 기준]
-  T --> F[Flask 모델 서버<br/>POST /analyze]
+  T --> O[OpenAI<br/>Node 서버 /api/analysis 경유]
+  T --> F[Flask 모델 서버<br/>Node 서버 /api/predict 경유]
   O --> J[(analysis_results.json)]
   F --> P[(SharedPreferences<br/>prediction_results)]
   J & P --> UI[[결과 카드 · 상세 화면]]
@@ -316,7 +319,7 @@ stateDiagram-v2
 flowchart LR
   ME[내 위치<br/>Geolocator] --> MID[두 좌표의<br/>중간 지점]
   PT[데이트 단계 상대 중 선택<br/>가입 때 저장한 좌표] --> MID
-  MID --> API[TourAPI<br/>locationBasedList1<br/>반경 5km]
+  MID --> API[Node 서버 /api/date-spots<br/>→ TourAPI locationBasedList1<br/>반경 5km]
   API --> CARD[[장소 카드]]
 ```
 
@@ -352,4 +355,4 @@ flowchart LR
 |:----:|:--------:|
 | <img src="docs/readme/start.png" width="200"> | <img src="docs/readme/signup.png" width="200"> |
 
-`mjs` 브랜치를 Flutter 웹으로 빌드해 촬영했습니다. 로그인 이후 화면(매칭, 영상통화, 분석, 채팅)은 MySQL과 Node 서버(`server/server.js`)가 있어야 하므로 이 두 화면만 실었습니다.
+Flutter 웹 빌드로 촬영했습니다. 로그인 이후 화면(매칭, 영상통화, 분석, 채팅)은 MySQL과 Node 서버(`server/server.js`)가 있어야 하므로 이 두 화면만 실었습니다.

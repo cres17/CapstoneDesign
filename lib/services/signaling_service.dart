@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,10 +51,13 @@ class SignalingService {
     socket?.clearListeners();
 
     print('[SignalingService] 새로운 소켓 연결 시도: $serverUrl');
+    // 서버는 연결 시 보낸 토큰으로 사용자를 확인한다
+    final token = await ApiAuth.token();
     socket = IO.io(
       serverUrl,
       IO.OptionBuilder()
           .setTransports(['websocket'])
+          .setAuth({'token': token ?? ''})
           .disableAutoConnect() // autoConnect 비활성화 유지
           .build(),
     );

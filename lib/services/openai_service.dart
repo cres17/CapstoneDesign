@@ -1,79 +1,19 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:capstone_porj/config/app_config.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 
 class OpenAIService {
-  static String get _apiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
-  static const String _apiUrl = 'https://api.openai.com/v1/chat/completions';
 
   Future<Map<String, Map<String, Map<String, String>>>?> analyzeConversation(
     String conversation,
   ) async {
-    final prompt = """
-너는 대화 분석 전문가이자 화용언어학자야. 아래 대화는 발화자 A와 B가 참여한 실제 대화야.
-
-이 대화를 다음 세 가지 기준에 따라 분석해줘.
-
-1. 적절한 주제 탐색 (협력의 원리, 상호 호혜적 의사소통의 원리)
-2. 자아 노출의 적정성 유지 (거리유지의 원칙)
-3. 경청과 협력적 반응 (협력의 원리, 공손성의 원리)
-
-각 항목마다 발화자 A와 B의 발화를 평가해줘.
-각 항목에서 “잘 드러난 부분”과 “아쉬운 부분”을 구체적 발화 예시를 포함하여 JSON 형식으로만 응답해줘.
-설명 없이 아래의 JSON 포맷을 그대로 따라줘.
-
-{
-  "주제탐색": {
-    "A": {
-      "잘 드러난 부분": "...",
-      "아쉬운 부분": "..."
-    },
-    "B": {
-      "잘 드러난 부분": "...",
-      "아쉬운 부분": "..."
-    }
-  },
-  "자아노출": {
-    "A": {
-      "잘 드러난 부분": "...",
-      "아쉬운 부분": "..."
-    },
-    "B": {
-      "잘 드러난 부분": "...",
-      "아쉬운 부분": "..."
-    }
-  },
-  "경청협력": {
-    "A": {
-      "잘 드러난 부분": "...",
-      "아쉬운 부분": "..."
-    },
-    "B": {
-      "잘 드러난 부분": "...",
-      "아쉬운 부분": "..."
-    }
-  }
-}
-
-대화:
-$conversation
-""";
-    final body = {
-      "model": "gpt-4.1-nano-2025-04-14",
-      "messages": [
-        {"role": "user", "content": prompt},
-      ],
-    };
-
-    print('[OpenAIService] 요청 준비: $_apiUrl');
-
+    // OpenAI 키와 프롬프트는 서버(/api/analysis)에 있고, 앱은 대화문만 보낸다.
+    // 서버는 OpenAI Chat Completions 응답을 그대로 돌려주므로 아래 파싱은 같다.
     final response = await http.post(
-      Uri.parse(_apiUrl),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $_apiKey",
-      },
-      body: jsonEncode(body),
+      Uri.parse('${AppConfig.serverUrl}/api/analysis'),
+      headers: await ApiAuth.headers(),
+      body: jsonEncode({'conversation': conversation}),
     );
 
     final decodedBody = utf8.decode(response.bodyBytes);

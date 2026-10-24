@@ -1,4 +1,5 @@
 import 'package:capstone_porj/models/call_result_data.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:capstone_porj/services/prediction_service.dart';
 import 'package:capstone_porj/services/prediction_storage_service.dart';
 import 'package:capstone_porj/widgets/face_mask_overlay.dart';
@@ -288,7 +289,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
           throw Exception('userId가 없습니다.');
         }
         final response = await http
-            .get(Uri.parse(AppConfig.getMatchingUrl(userId)))
+            .get(Uri.parse(AppConfig.matchingUrl), headers: await ApiAuth.headers(json: false))
             .timeout(const Duration(seconds: 10));
 
         // 3) 매칭 성공
@@ -365,7 +366,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     try {
       final response = await http.post(
         Uri.parse('${AppConfig.serverUrl}/api/call-history'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await ApiAuth.headers(),
         body: jsonEncode({
           'user_id': user_id,
           'partner_id': partner_id,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:capstone_porj/services/api_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
@@ -64,26 +64,15 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
 
       print('현재 위치: 경도(mapX)=$mapX, 위도(mapY)=$mapY');
 
-      // 디코딩된 서비스키 사용
-      final String serviceKey = dotenv.env['TOUR_API_KEY'] ?? '';
-      final String encodedServiceKey = Uri.encodeComponent(serviceKey);
+      // TourAPI 서비스 키는 서버에만 있으므로 서버의 /api/date-spots를 거쳐 조회한다
+      final url = Uri.parse(
+        '${AppConfig.serverUrl}/api/date-spots',
+      ).replace(queryParameters: {'lat': '$mapY', 'lng': '$mapX', 'rows': '10'});
 
-      // 요청 URL 생성
-      final String url =
-          'https://apis.data.go.kr/B551011/KorService1/locationBasedList1'
-          '?MobileOS=AND'
-          '&MobileApp=daon'
-          '&mapX=$mapX'
-          '&mapY=$mapY'
-          '&radius=5000'
-          '&contentTypeId=39'
-          '&serviceKey=$encodedServiceKey'
-          '&_type=xml'
-          '&numOfRows=10';
-
-      print('요청 URL: $url');
-
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        url,
+        headers: await ApiAuth.headers(json: false),
+      );
       print('응답 코드: ${response.statusCode}');
       final decodedBody = utf8.decode(response.bodyBytes);
       print('응답 본문: $decodedBody');
@@ -137,7 +126,10 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
       print('내 userId: $myUserId');
       final url = '${AppConfig.serverUrl}/date-partners/$myUserId';
       print('서버로 요청하는 URL: $url');
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: await ApiAuth.headers(json: false),
+      );
       print('서버 응답 코드: ${response.statusCode}');
       print('서버 응답 body: ${response.body}');
       if (response.statusCode == 200) {
@@ -198,21 +190,14 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
     });
 
     try {
-      final String serviceKey = dotenv.env['TOUR_API_KEY'] ?? '';
-      final String encodedServiceKey = Uri.encodeComponent(serviceKey);
+      final url = Uri.parse(
+        '${AppConfig.serverUrl}/api/date-spots',
+      ).replace(queryParameters: {'lat': '$lat', 'lng': '$lng', 'rows': '30'});
 
-      final String url =
-          'https://apis.data.go.kr/B551011/KorService1/locationBasedList1'
-          '?MobileOS=AND'
-          '&MobileApp=daon'
-          '&mapX=$lng'
-          '&mapY=$lat'
-          '&radius=5000'
-          '&contentTypeId=39'
-          '&serviceKey=$encodedServiceKey'
-          '&_type=xml';
-
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        url,
+        headers: await ApiAuth.headers(json: false),
+      );
       if (response.statusCode == 200) {
         final document = xml.XmlDocument.parse(utf8.decode(response.bodyBytes));
         final items = document.findAllElements('item');
@@ -300,7 +285,8 @@ class _DateRecommendationScreenState extends State<DateRecommendationScreen> {
                         backgroundImage:
                             partner['profile_image'] != null
                                 ? NetworkImage(
-                                  '${AppConfig.serverUrl}/${partner['profile_image']}',
+                                  '${AppConfig.serverUrl}/user-profile/${partner['partner_id']}',
+                                  headers: ApiAuth.imageHeaders(),
                                 )
                                 : null,
                         child:

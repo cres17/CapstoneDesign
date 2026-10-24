@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.0.17
+  http_parser: ^4.0.2
   http: ^1.3.0
   shared_preferences: ^2.5.3
   provider: ^6.1.4
@@ -49,7 +50,6 @@ dependencies:
   google_mlkit_face_detection: ^0.13.1
   image: ^4.5.4
   flutter_sound: ^9.28.0
-  flutter_dotenv: ^5.2.1
   geolocator: ^14.0.0
   xml: ^6.5.0
 
@@ -108,4 +108,3 @@ flutter:
   assets:
     - assets/images/ # 폴더 전체를 등록하거나
     - assets/images/default_mask.png # 특정 파일만 등록
-    - .env # 이 줄을 추가하세요
