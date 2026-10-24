@@ -276,3 +276,9 @@ class KoBigBirdBinaryClassifier(nn.Module):
 | 데이트 장소 추천 | 두 사람의 위치 기반 추천 장소 카드 |
 | 채팅방 | 1:1 채팅, 채팅방 목록, 실시간 메시지 |
 | 설정 | 주소 수정, 로그아웃, 회원탈퇴 |
+
+| 시작 | 회원가입 |
+|:----:|:--------:|
+| <img src="docs/readme/start.png" width="200"> | <img src="docs/readme/signup.png" width="200"> |
+
+`mjs` 브랜치를 Flutter 웹으로 빌드해 촬영했습니다. 로그인 이후 화면(매칭, 영상통화, 분석, 채팅)은 MySQL과 Node 서버(`server/server.js`)가 있어야 하므로 이 두 화면만 실었습니다.
