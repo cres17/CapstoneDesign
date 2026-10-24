@@ -80,6 +80,40 @@ flutter run
 ## 주요 기능
 
 ### 1. 실시간 영상통화 & 얼굴 마스킹
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as 앱 A (발신)
+  participant S as Express · Socket.IO 서버
+  participant B as 앱 B (수신)
+  A->>S: GET /match
+  alt 접속 중인 다른 사용자 있음
+    S-->>A: 무작위 상대 ID
+  else 없음
+    S-->>A: 404 · 대기 목록에 등록
+  end
+  A->>S: call (offer)
+  S->>B: incomingCall (offer)
+  B->>S: acceptCall
+  S->>A: callAccepted
+  B->>S: callAnswered (answer)
+  S->>A: callAnswered (answer)
+  A-)B: ice-candidate (서버 중계, 양방향)
+  Note over A,B: 이후 영상은 WebRTC로 두 앱이 직접 연결
+  A->>S: endCall
+  S->>S: call_partners 통화 횟수 +1<br/>(3초 안 중복 저장 무시)
+  S->>B: callEnded
+```
+
+```mermaid
+flowchart LR
+  V[상대 영상] -->|0.5초마다| C[RepaintBoundary로<br/>프레임 캡처]
+  C --> D[ML Kit<br/>얼굴 감지]
+  D --> M[얼굴 위치에<br/>마스크 이미지 그림]
+  M --> V
+```
+
 - **WebRTC**(`flutter_webrtc`)로 실시간 영상통화 구현, 시그널링은 **Socket.IO** 서버가 중계
 - **Google ML Kit Face Detection**으로 상대 영상 프레임에서 얼굴 감지
 - **CustomPaint**와 **dart:ui**로 얼굴 위치에 마스크 이미지 오버레이
@@ -88,6 +122,19 @@ flutter run
 ---
 
 ### 2. AI 기반 대화 분석
+
+```mermaid
+flowchart LR
+  R[통화 녹음<br/>AAC] --> STT[CLOVA Speech<br/>STT ko-KR]
+  STT --> T[대화문]
+  T --> O[OpenAI<br/>대화 분석 3개 기준]
+  T --> F[Flask 모델 서버<br/>POST /analyze]
+  O --> J[(analysis_results.json)]
+  F --> P[(SharedPreferences<br/>prediction_results)]
+  J & P --> UI[[결과 카드 · 상세 화면]]
+  W[(W&B Artifact<br/>latest 가중치)] -. 서버 시작 시 로드 .-> F
+```
+
 - 통화 음성을 `flutter_sound`로 녹음(AAC) → **네이버 CLOVA Speech API**로 STT(음성→텍스트, ko-KR 동기 처리)
 - 변환된 대화문을 **OpenAI Chat Completions API**로 전송해 세 기준으로 화자별 평가
   - 적절한 주제 탐색 (협력의 원리, 상호 호혜적 의사소통의 원리)
@@ -242,6 +289,21 @@ class KoBigBirdBinaryClassifier(nn.Module):
 ---
 
 ### 4. 실시간 채팅 기능
+
+관계 단계와 채팅방 생성 흐름입니다.
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> 통화: 통화 종료 시 call_partners 기록
+  통화 --> 사진공개: 두 사람 모두 동의
+  사진공개 --> 데이트: 두 사람 모두 동의
+  데이트 --> 채팅: chat_rooms 생성
+  통화 --> 삭제: 한 명이라도 거절
+  사진공개 --> 삭제: 한 명이라도 거절
+  삭제 --> [*]
+```
+
 - **Socket.IO** 기반의 1:1 채팅 및 채팅방 목록
 - 3단계(데이트)에 양쪽이 동의하면 서버가 채팅방을 생성
 - 메시지 실시간 송수신(`joinRoom`, `sendMessage`, `receiveMessage`), 대화 기록은 MySQL에 저장
@@ -249,6 +311,15 @@ class KoBigBirdBinaryClassifier(nn.Module):
 ---
 
 ### 5. 데이트 장소 추천
+
+```mermaid
+flowchart LR
+  ME[내 위치<br/>Geolocator] --> MID[두 좌표의<br/>중간 지점]
+  PT[데이트 단계 상대 중 선택<br/>가입 때 저장한 좌표] --> MID
+  MID --> API[TourAPI<br/>locationBasedList1<br/>반경 5km]
+  API --> CARD[[장소 카드]]
+```
+
 - 내 현재 위치(Geolocator)와 선택한 상대방 위치의 **중간 좌표**를 계산
 - **한국관광공사 TourAPI**(`KorService1/locationBasedList1`)로 반경 5km 내 장소 조회, 카드형 UI로 제공
 
