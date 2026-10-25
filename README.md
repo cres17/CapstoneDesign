@@ -2,29 +2,27 @@
 
 # 다온 (Daon) - AI 기반 소개팅 어플리케이션
 
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
-![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat&logoColor=white&logo=webrtc)
-![Node.js](https://img.shields.io/badge/Node.js-5FA04E?style=flat&logoColor=white&logo=nodedotjs)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat&logoColor=white&logo=socketdotio)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logoColor=white&logo=mysql)
-![CLOVA Speech](https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&logoColor=white&logo=naver)
-![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logoColor=white&logo=pytorch)
-![Hugging Face Transformers](https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&logoColor=black&logo=huggingface)
-![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
+
+<p align="center">Flutter · WebRTC · Node.js · MySQL · PyTorch</p>
 
 </div>
+
+[구조](#architecture) · [주요 흐름](#workflow) · [설계 선택](#핵심-설계-결정) · [실행](#시작하기)
 
 **다온**은 Flutter 기반의 AI 소개팅 어플리케이션입니다.  
 실시간 영상통화, 얼굴 마스킹, AI 대화 분석, **호감도 변화 예측**, 실시간 채팅, 데이트 장소 추천 기능을 제공합니다.
 
 ---
 
-## 전체 아키텍처
+<a id="architecture"></a>
+
+## 구조 한눈에 보기
 
 <p align="center">
   <img src="docs/assets/readme/architecture.svg" alt="다온 전체 아키텍처" width="100%">
 </p>
+
+통화 연결 · 서비스 저장 · 통화 후 분석의 세 경로입니다. 외부 분석 API는 Node 서버를 거쳐 호출합니다.
 
 | 구간 | 흐름 |
 |------|------|
@@ -80,9 +78,16 @@ flutter run --dart-define=SERVER_URL=http://<서버 IP>:5000
 | 호감도 모델은 별도 서버로 분리 | Flask 모델 서버(포트 5001)가 시작 시 W&B Artifact 가중치(기본 `latest`, `MODEL_ARTIFACT_VERSION`으로 고정 가능)를 받아 로드합니다. 모델 서버는 내부 주소에만 열고, 앱은 Node 서버의 `POST /api/predict`를 거쳐 점수를 받습니다. | `server/model_server.py`, `server/server.js` |
 | 사용자 확인은 서버가 토큰으로 | 요청 본문이나 경로의 사용자 id를 믿지 않고 JWT의 사용자로만 조회 · 변경합니다. 채팅은 참여한 방에만 입장 · 전송할 수 있고, 상대 프로필 사진은 2단계(사진 공개) 이상에서만 내려줍니다. 외부 API 키(OpenAI · CLOVA · TourAPI)는 서버에만 두고 앱은 서버를 거쳐 호출합니다. | `server/server.js`, `lib/services/api_auth.dart` |
 
-## 주요 기능
+<a id="workflow"></a>
 
-### 1. 실시간 영상통화 & 얼굴 마스킹
+## 주요 흐름
+
+![CapstoneDesign의 주요 처리 흐름](docs/assets/readme/workflow.svg)
+
+## 세부 동작
+
+<details>
+<summary><b>1. 실시간 영상통화 & 얼굴 마스킹</b></summary>
 
 ```mermaid
 sequenceDiagram
@@ -124,7 +129,10 @@ flowchart LR
 
 ---
 
-### 2. AI 기반 대화 분석
+</details>
+
+<details>
+<summary><b>2. AI 기반 대화 분석</b></summary>
 
 ```mermaid
 flowchart LR
@@ -147,7 +155,10 @@ flowchart LR
 
 ---
 
-### 3. 호감도 변화 예측 (Core AI)
+</details>
+
+<details>
+<summary><b>3. 호감도 변화 예측 (Core AI)</b></summary>
 
 소개팅 대화에서 발화자의 **호감도 변화**를 텍스트만으로 예측하는 자체 AI 모델입니다.  
 공개 데이터셋이 없는 도메인에서 Weak Supervision 기반 Soft Labeling으로 라벨을 보완하고,  
@@ -291,7 +302,10 @@ class KoBigBirdBinaryClassifier(nn.Module):
 
 ---
 
-### 4. 실시간 채팅 기능
+</details>
+
+<details>
+<summary><b>4. 실시간 채팅 기능</b></summary>
 
 관계 단계와 채팅방 생성 흐름입니다.
 
@@ -313,7 +327,10 @@ stateDiagram-v2
 
 ---
 
-### 5. 데이트 장소 추천
+</details>
+
+<details>
+<summary><b>5. 데이트 장소 추천</b></summary>
 
 ```mermaid
 flowchart LR
@@ -328,7 +345,11 @@ flowchart LR
 
 ---
 
-### 6. 기타 기능
+</details>
+
+<details>
+<summary><b>6. 기타 기능</b></summary>
+
 - **회원가입/로그인**: 아이디·닉네임 중복 확인, bcrypt 비밀번호 해시, JWT 발급
 - **랜덤 매칭**: 서버에 접속한 사용자 중 무작위 연결, 없으면 대기 목록에 등록
 - **관계 단계**: 통화 → 사진 공개 → 데이트, 각 단계는 양쪽 동의가 모두 있어야 진행. 거절하면 상대 목록에서 삭제
@@ -337,7 +358,8 @@ flowchart LR
 
 ---
 
----
+</details>
+
 
 ## 화면 구성
 
