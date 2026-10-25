@@ -40,7 +40,7 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 통화가 끝나면 앱이 Node 서버에 녹음 파일을 보내면 서버가 CLOVA Speech로 대화문을 얻습니다. 이 대화문을 OpenAI와 Flask 모델 서버에 각각 보내 대화 피드백과 호감 점수를 받습니다. 외부 서비스의 키는 Node 서버에만 둡니다.
 
 | 코드 | 담당 기능 |
-|---|---|
+|:---:|:---:|
 | `lib/screens/` | 통화, 분석 결과, 채팅, 데이트 장소, 설정 화면 |
 | `lib/services/` | 인증, 시그널링, 얼굴 감지, 분석 결과 저장 |
 | `server/server.js` | REST API, Socket.IO, 외부 API 중계 |
@@ -49,7 +49,6 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 ## 영상통화
 
-<p><img src="https://img.shields.io/badge/MAIN%20FEATURE-7659B8?style=flat-square" alt="MAIN 기능" height="20"></p>
 
 매칭 요청이 들어오면 접속 중인 사용자 중 상대를 고릅니다. 상대가 없을 때는 대기 목록에 등록합니다. 발신 앱의 offer, 수신 앱의 answer, 양쪽의 ICE candidate를 Socket.IO로 교환한 뒤 WebRTC 연결을 시작합니다.
 
@@ -59,7 +58,6 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 ## 관계 단계와 채팅
 
-<p><img src="https://img.shields.io/badge/SUB%20FEATURE-B5A5D9?style=flat-square" alt="SUB 기능" height="20"></p>
 
 **통화 → 사진 공개 → 데이트** 순서로 진행됩니다. 다음 단계로 넘어가려면 두 사람의 동의가 모두 필요합니다. 한 명이 거절하면 상대 목록에서 삭제됩니다.
 
@@ -69,7 +67,6 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 ## 대화 분석
 
-<p><img src="https://img.shields.io/badge/MAIN%20FEATURE-7659B8?style=flat-square" alt="MAIN 기능" height="20"></p>
 
 ![통화 후 분석 과정](docs/assets/readme/workflow.svg)
 
@@ -82,7 +79,6 @@ AAC 녹음을 한국어 대화문으로 변환한 뒤, 다음 두 결과를 따�
 
 ## 호감도 모델
 
-<p><img src="https://img.shields.io/badge/MAIN%20FEATURE-7659B8?style=flat-square" alt="MAIN 기능" height="20"></p>
 
 ![호감도 모델의 학습 및 서빙 구성](docs/assets/readme/model-architecture.svg)
 
@@ -95,7 +91,7 @@ KoBigBird의 CLS 벡터로 발화를 표현하고, Snorkel의 예측과 k-NN 그
 회귀 모델은 아래 순서로 발화별 점수를 계산합니다.
 
 | 모듈 | 처리 |
-|---|---|
+|:---:|:---:|
 | `TransformerEmbed` | 현재 발화와 좌우 문맥을 KoBigBird로 인코딩하고, 3·4·5-gram CNN 표현을 더해 100차원으로 투영 |
 | 양방향 `GNTB` | 앞에서 뒤로, 뒤에서 앞으로 대화를 읽으며 발화 간 영향을 누적 |
 | `TFEModule` | 순·역방향 상태를 LSTMCell과 CNN에 통과시켜 연속 흐름과 지역 패턴을 결합 |
@@ -112,7 +108,7 @@ KoBigBird의 CLS 벡터로 발화를 표현하고, Snorkel의 예측과 k-NN 그
 ### 기록된 결과
 
 | 관점 | 분류 정확도 | 분류 F1 | 회귀 MSE | 회귀 R² |
-|---|---:|---:|---:|---:|
+|:---:|:---:|:---:|:---:|:---:|
 | 남성 | 0.607 | 0.756 | 0.056 | 0.587 |
 | 여성 | 0.536 | 0.606 | 0.045 | 0.503 |
 
@@ -127,7 +123,7 @@ KoBigBird의 CLS 벡터로 발화를 표현하고, Snorkel의 예측과 k-NN 그
 Flutter가 로그인부터 통화·분석·채팅·설정까지 화면을 구성합니다. HTTP 요청과 Socket.IO 연결은 서로 역할이 다릅니다. 회원 정보와 분석 요청은 HTTP로 보내고, 매칭 신호와 채팅 메시지는 지속 연결로 전달합니다.
 
 | 기술 | 이 앱에서 하는 일 |
-|---|---|
+|:---:|:---:|
 | Flutter · Dart | 화면, 내비게이션, 통화 상태와 분석 결과 표시 |
 | flutter_webrtc | 카메라·마이크 스트림과 상대 스트림을 연결하는 WebRTC 클라이언트 |
 | socket_io_client · Socket.IO | 매칭, offer·answer·ICE 교환, 채팅방 참가와 실시간 메시지 전달 |
@@ -143,7 +139,7 @@ Flutter가 로그인부터 통화·분석·채팅·설정까지 화면을 구성
 Express는 인증, 회원 정보, 관계 단계, 채팅 기록과 외부 분석 서비스의 요청 창구입니다. MySQL에는 회원과 관계 상태를 저장합니다. 사진 공개와 채팅방 생성은 화면에서만 제어하지 않고 서버가 현재 관계 단계를 확인합니다.
 
 | 기술 | 요청 처리 |
-|---|---|
+|:---:|:---:|
 | Node.js · Express | REST API와 외부 API 중계. 서버 진입점은 `server/server.js` |
 | bcryptjs · jsonwebtoken | 비밀번호 해시와 로그인 JWT 발급·검증 |
 | mysql2 · MySQL | 회원, 통화 상대, 관계 단계, 채팅방과 메시지 영속화 |
