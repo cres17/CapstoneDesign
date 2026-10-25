@@ -106,6 +106,50 @@ KoBigBird의 CLS 벡터로 발화를 표현하고, Snorkel의 예측과 k-NN 그
 
 실사용자 48명의 호감도 예측 기능 만족도는 5점 만점에 4.22점이었습니다. 분류와 회귀의 수치는 서로 다른 실험 결과입니다. 학습 코드는 비공개 저장소 `likeability_expectation`에서 관리합니다.
 
+## 기술별 역할
+
+![기술 구성과 담당 기능](docs/assets/readme/components.svg)
+
+### 앱과 기기 기능
+
+Flutter가 로그인부터 통화·분석·채팅·설정까지 화면을 구성합니다. HTTP 요청과 Socket.IO 연결은 서로 역할이 다릅니다. 회원 정보와 분석 요청은 HTTP로 보내고, 매칭 신호와 채팅 메시지는 지속 연결로 전달합니다.
+
+| 기술 | 이 앱에서 하는 일 |
+|---|---|
+| Flutter · Dart | 화면, 내비게이션, 통화 상태와 분석 결과 표시 |
+| flutter_webrtc | 카메라·마이크 스트림과 상대 스트림을 연결하는 WebRTC 클라이언트 |
+| socket_io_client · Socket.IO | 매칭, offer·answer·ICE 교환, 채팅방 참가와 실시간 메시지 전달 |
+| Google ML Kit · image | 영상 프레임에서 얼굴 위치를 찾아 마스크를 합성하는 기기 내 처리 |
+| flutter_sound | 통화 후 분석에 넘길 녹음 처리 |
+| Geolocator · TourAPI | 두 사람의 위치를 바탕으로 중간 지점 주변 데이트 장소 조회 |
+| image_picker · cached_network_image | 프로필 사진 선택과 네트워크 이미지 표시 |
+| SharedPreferences · path_provider | 앱 설정과 로컬 파일을 다루는 저장 수단 |
+| permission_handler | 카메라·마이크·위치 등 기기 기능 사용 권한 요청 |
+
+### API와 저장소
+
+Express는 인증, 회원 정보, 관계 단계, 채팅 기록과 외부 분석 서비스의 요청 창구입니다. MySQL에는 회원과 관계 상태를 저장합니다. 사진 공개와 채팅방 생성은 화면에서만 제어하지 않고 서버가 현재 관계 단계를 확인합니다.
+
+| 기술 | 요청 처리 |
+|---|---|
+| Node.js · Express | REST API와 외부 API 중계. 서버 진입점은 `server/server.js` |
+| bcryptjs · jsonwebtoken | 비밀번호 해시와 로그인 JWT 발급·검증 |
+| mysql2 · MySQL | 회원, 통화 상대, 관계 단계, 채팅방과 메시지 영속화 |
+| multer | 파일 업로드 수신 |
+| CLOVA Speech | 업로드한 녹음에서 분석에 사용할 대화문 생성 |
+| OpenAI API | 대화문을 바탕으로 대화 피드백 생성 |
+| Flask | Node 서버의 예측 요청을 받는 별도 모델 서버 |
+| PyTorch · Transformers | 관점에 맞는 KoBigBird 모델을 로드하고 sigmoid 점수 계산 |
+| Weights & Biases | 서빙 모델 아티팩트 배포. `MODEL_ARTIFACT_VERSION`으로 특정 버전을 고정할 수 있음 |
+
+모델 서버의 `POST /analyze`는 `input_text`와 `gender`를 검사하고, 최대 512토큰으로 추론합니다. 학습 노트북의 긴 문맥 분류 실험과 이 서빙 경로는 입력 길이와 저장 형식이 다릅니다. 앱은 반환 점수에 100을 곱해 호감 지수로 보여 줍니다.
+
+### 화면에서 할 수 있는 일
+
+회원가입에서는 아이디·닉네임 중복을 확인하고 성별, 주소, 프로필을 입력합니다. 메인에서는 통화 상대를 찾거나 이전 분석 결과를 열 수 있습니다. 대화 분석과 호감도 예측은 통화별 카드에서 상세 결과로 들어갑니다. 데이트 단계의 상대는 장소 추천과 채팅으로 이어지며, 설정에서는 주소 수정·로그아웃·회원탈퇴를 처리합니다.
+
+구현은 [앱 코드](lib), [API 서버](server/server.js), [DB 스키마](server/schema.sql), [모델 서버](server/model_server.py)에서 확인할 수 있습니다.
+
 ## 실행
 
 ### 1. Node 서버
