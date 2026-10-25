@@ -1,19 +1,19 @@
 <h1 align="center">다온</h1>
 
-<div align="center">
-
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
-![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat&logoColor=white&logo=webrtc)
-![Node.js](https://img.shields.io/badge/Node.js-5FA04E?style=flat&logoColor=white&logo=nodedotjs)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat&logoColor=white&logo=socketdotio)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logoColor=white&logo=mysql)
-![CLOVA Speech](https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&logoColor=white&logo=naver)
-![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logoColor=white&logo=pytorch)
-![Hugging Face Transformers](https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&logoColor=black&logo=huggingface)
-![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
-
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-02569B?style=flat&amp;logoColor=white&amp;logo=flutter" alt="Flutter" height="20">
+  <img src="https://img.shields.io/badge/WebRTC-333333?style=flat&amp;logoColor=white&amp;logo=webrtc" alt="WebRTC" height="20">
+  <img src="https://img.shields.io/badge/Node.js-5FA04E?style=flat&amp;logoColor=white&amp;logo=nodedotjs" alt="Node.js" height="20">
+  <img src="https://img.shields.io/badge/Socket.IO-010101?style=flat&amp;logoColor=white&amp;logo=socketdotio" alt="Socket.IO" height="20">
+  <br>
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat&amp;logoColor=white&amp;logo=mysql" alt="MySQL" height="20">
+  <img src="https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&amp;logoColor=white&amp;logo=naver" alt="CLOVA Speech" height="20">
+  <img src="https://img.shields.io/badge/OpenAI%20API-412991?style=flat&amp;logoColor=white" alt="OpenAI API" height="20">
+  <br>
+  <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&amp;logoColor=white&amp;logo=pytorch" alt="PyTorch" height="20">
+  <img src="https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&amp;logoColor=black&amp;logo=huggingface" alt="Hugging Face Transformers" height="20">
+  <img src="https://img.shields.io/badge/Flask-3BABC3?style=flat&amp;logoColor=white&amp;logo=flask" alt="Flask" height="20">
+</p>
 
 영상통화로 먼저 대화하고, 서로 동의하면 사진 공개와 데이트로 이어지는 소개팅 앱입니다. 통화가 끝나면 대화 내용에 대한 피드백과 호감도 예측 결과를 확인할 수 있습니다. Flutter로 앱을 만들고, Node.js 서버와 별도의 Python 모델 서버를 연결했습니다.
 
