@@ -100,6 +100,23 @@ function hadRecentCall(a, b) {
   return Boolean(at && Date.now() - at < RECENT_CALL_MS);
 }
 
+// 같은 방향의 통화 종료가 짧은 간격으로 겹쳐 들어오면 한 번만 기록한다.
+// DB 조회 후 저장하는 방식은 두 요청이 모두 조회를 마친 뒤 저장할 수 있으므로,
+// 첫 await 전에 동기적으로 확인·표시한다 (단일 서버 프로세스 기준)
+const END_CALL_DEDUP_MS = 3000;
+const recentEndCalls = new Map(); // 'from->to' -> timestamp
+function claimEndCall(from, to) {
+  const key = `${from}->${to}`;
+  const now = Date.now();
+  const at = recentEndCalls.get(key);
+  if (at && now - at < END_CALL_DEDUP_MS) return false;
+  recentEndCalls.set(key, now);
+  for (const [k, t] of recentEndCalls) {
+    if (now - t >= END_CALL_DEDUP_MS) recentEndCalls.delete(k);
+  }
+  return true;
+}
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -233,7 +250,7 @@ io.on('connection', (socket) => {
   
   // 통화 응답
   socket.on('callAnswered', (data) => {
-    const { caller, answer } = data;
+    const { caller, answer } = data || {};
     console.log(`통화 응답: ${socket.userId} -> ${caller}`);
     
     if (activeUsers[caller]?.socketId) {
@@ -253,7 +270,7 @@ io.on('connection', (socket) => {
   
   // 통화 에러 이벤트 추가
   socket.on('callError', (data) => {
-    const { target, error } = data;
+    const { target, error } = data || {};
     console.log(`통화 에러 발생: ${socket.userId} -> ${target}, 에러: ${error}`);
     
     if (activeUsers[target]?.socketId) {
@@ -266,7 +283,7 @@ io.on('connection', (socket) => {
   
   // ICE 후보 전달
   socket.on('ice-candidate', (data) => {
-    const { target, candidate } = data;
+    const { target, candidate } = data || {};
     
     if (activeUsers[target]?.socketId) {
       io.to(activeUsers[target]?.socketId).emit('ice-candidate', {
@@ -278,7 +295,7 @@ io.on('connection', (socket) => {
   
   // 통화 종료
   socket.on('endCall', async (data) => {
-    const { target } = data;
+    const { target } = data || {};
     const myUserId = socket.userId;
     const partnerUserId = target;
 
@@ -288,13 +305,13 @@ io.on('connection', (socket) => {
     if (!hadRecentCall(myUserId, partnerUserId)) return;
 
     try {
-      // 최근 3초 이내에 저장된 내역이 있으면 무시
-      const [rows] = await db.query(
+      // 짧은 간격의 중복 종료는 무시. 서버 재시작 직후 같은 종료가 다시 오는 경우는 DB 시각으로 한 번 더 거른다
+      const duplicate = !claimEndCall(myUserId, partnerUserId) || (await db.query(
         `SELECT id FROM call_partners
          WHERE user_id = ? AND partner_id = ? AND updated_at > DATE_SUB(NOW(), INTERVAL 3 SECOND)`,
         [myUserId, partnerUserId]
-      );
-      if (rows.length === 0) {
+      ))[0].length > 0;
+      if (!duplicate) {
         await db.query(
           `INSERT INTO call_partners (user_id, partner_id, count)
            VALUES (?, ?, 1)
@@ -319,7 +336,7 @@ io.on('connection', (socket) => {
   
   // 통화 거절 이벤트 처리
   socket.on('callRejected', (data) => {
-    const { caller } = data;
+    const { caller } = data || {};
     console.log(`통화 거절: ${socket.userId} -> ${caller}`);
     
     if (activeUsers[caller]?.socketId) {
@@ -331,7 +348,7 @@ io.on('connection', (socket) => {
   
   // 통화 수락 알림 처리
   socket.on('acceptCall', (data) => {
-    const { caller, offer } = data;
+    const { caller, offer } = data || {};
     console.log(`통화 수락 알림: ${socket.userId} -> ${caller}`);
     
     // 중복 알림 방지를 위한 통화 상태 관리 추가
@@ -428,7 +445,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('answer', (data) => {
-    console.log(`[answer] from: ${data.callee} to: ${data.caller}, socket: ${socket.id}`);
+    console.log(`[answer] from: ${data?.callee} to: ${data?.caller}, socket: ${socket.id}`);
     // ... 기존 answer 처리 ...
   });
 });
