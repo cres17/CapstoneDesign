@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" alt="CapstoneDesign 앱 아이콘" width="124">
+</p>
+
 <h1 align="center">다온</h1>
 
 <p align="center">
@@ -45,6 +49,8 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 ## 영상통화
 
+<p><img src="https://img.shields.io/badge/MAIN%20FEATURE-7659B8?style=flat-square" alt="MAIN 기능" height="20"></p>
+
 매칭 요청이 들어오면 접속 중인 사용자 중 상대를 고릅니다. 상대가 없을 때는 대기 목록에 등록합니다. 발신 앱의 offer, 수신 앱의 answer, 양쪽의 ICE candidate를 Socket.IO로 교환한 뒤 WebRTC 연결을 시작합니다.
 
 통화 중 상대 얼굴에는 마스크 이미지를 덮습니다. 상대 영상의 프레임을 `RepaintBoundary`로 0.5초마다 캡처하고, ML Kit가 찾은 얼굴 위치에 오버레이를 그립니다. 얼굴 감지와 마스크 합성은 기기에서 처리합니다.
@@ -53,6 +59,8 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 ## 관계 단계와 채팅
 
+<p><img src="https://img.shields.io/badge/SUB%20FEATURE-B5A5D9?style=flat-square" alt="SUB 기능" height="20"></p>
+
 **통화 → 사진 공개 → 데이트** 순서로 진행됩니다. 다음 단계로 넘어가려면 두 사람의 동의가 모두 필요합니다. 한 명이 거절하면 상대 목록에서 삭제됩니다.
 
 사진은 사진 공개 단계부터 조회할 수 있습니다. 데이트 단계에 도달하면 채팅방을 만들고, 해당 방에 참여한 사용자만 메시지를 보내거나 받을 수 있도록 서버에서 확인합니다. 메시지는 `chat_messages`에 저장합니다.
@@ -60,6 +68,8 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 데이트 장소는 두 사람의 위치 중간 지점을 기준으로 찾습니다. 앱이 계산한 좌표를 `/api/date-spots`로 보내면 서버가 TourAPI에서 반경 5km의 장소를 조회합니다.
 
 ## 대화 분석
+
+<p><img src="https://img.shields.io/badge/MAIN%20FEATURE-7659B8?style=flat-square" alt="MAIN 기능" height="20"></p>
 
 ![통화 후 분석 과정](docs/assets/readme/workflow.svg)
 
@@ -71,6 +81,8 @@ AAC 녹음을 한국어 대화문으로 변환한 뒤, 다음 두 결과를 따�
 대화 피드백은 앱 문서 디렉터리의 `analysis_results.json`에, 호감도 기록은 SharedPreferences에 저장합니다. 분석 결과를 서버 DB에 쌓는 구조는 아닙니다.
 
 ## 호감도 모델
+
+<p><img src="https://img.shields.io/badge/MAIN%20FEATURE-7659B8?style=flat-square" alt="MAIN 기능" height="20"></p>
 
 ![호감도 모델의 학습 및 서빙 구성](docs/assets/readme/model-architecture.svg)
 
