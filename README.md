@@ -1,4 +1,19 @@
-# 다온
+<h1 align="center">다온</h1>
+
+<div align="center">
+
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logoColor=white&logo=flutter)
+![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=flat&logoColor=white&logo=webrtc)
+![Node.js](https://img.shields.io/badge/Node.js-5FA04E?style=flat&logoColor=white&logo=nodedotjs)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat&logoColor=white&logo=socketdotio)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logoColor=white&logo=mysql)
+![CLOVA Speech](https://img.shields.io/badge/CLOVA%20Speech-03C75A?style=flat&logoColor=white&logo=naver)
+![OpenAI API](https://img.shields.io/badge/OpenAI%20API-412991?style=flat&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logoColor=white&logo=pytorch)
+![Hugging Face Transformers](https://img.shields.io/badge/Hugging%20Face%20Transformers-FFD21E?style=flat&logoColor=black&logo=huggingface)
+![Flask](https://img.shields.io/badge/Flask-3BABC3?style=flat&logoColor=white&logo=flask)
+
+</div>
 
 영상통화로 먼저 대화하고, 서로 동의하면 사진 공개와 데이트로 이어지는 소개팅 앱입니다. 통화가 끝나면 대화 내용에 대한 피드백과 호감도 예측 결과를 확인할 수 있습니다. Flutter로 앱을 만들고, Node.js 서버와 별도의 Python 모델 서버를 연결했습니다.
 
@@ -18,7 +33,7 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 앱의 회원 정보와 관계 상태는 Express가 관리하고 MySQL에 저장합니다. Socket.IO는 통화 연결에 필요한 신호와 채팅 메시지를 전달합니다. 영상과 음성은 WebRTC로 두 기기가 직접 주고받습니다.
 
-통화 후 분석은 별도 요청입니다. 앱이 Node 서버에 녹음 파일을 보내면 서버가 CLOVA Speech로 대화문을 얻습니다. 이 대화문을 OpenAI와 Flask 모델 서버에 각각 보내 대화 피드백과 호감 점수를 받습니다. 외부 서비스의 키는 Node 서버에만 둡니다.
+통화가 끝나면 앱이 Node 서버에 녹음 파일을 보내면 서버가 CLOVA Speech로 대화문을 얻습니다. 이 대화문을 OpenAI와 Flask 모델 서버에 각각 보내 대화 피드백과 호감 점수를 받습니다. 외부 서비스의 키는 Node 서버에만 둡니다.
 
 | 코드 | 담당 기능 |
 |---|---|
@@ -32,7 +47,7 @@ Flutter 웹 빌드에서 촬영한 화면입니다. 로그인 이후의 매칭·
 
 매칭 요청이 들어오면 접속 중인 사용자 중 상대를 고릅니다. 상대가 없을 때는 대기 목록에 등록합니다. 발신 앱의 offer, 수신 앱의 answer, 양쪽의 ICE candidate를 Socket.IO로 교환한 뒤 WebRTC 연결을 시작합니다.
 
-통화 중 상대 얼굴에는 마스크 이미지를 덮습니다. 상대 영상의 프레임을 `RepaintBoundary`로 0.5초마다 캡처하고, ML Kit가 찾은 얼굴 위치에 오버레이를 그립니다. 이 처리는 기기 안에서 수행합니다.
+통화 중 상대 얼굴에는 마스크 이미지를 덮습니다. 상대 영상의 프레임을 `RepaintBoundary`로 0.5초마다 캡처하고, ML Kit가 찾은 얼굴 위치에 오버레이를 그립니다. 얼굴 감지와 마스크 합성은 기기에서 처리합니다.
 
 통화 종료 이벤트가 중복으로 들어와 기록이 늘어나는 것을 막기 위해 서버는 3초 안의 중복 저장을 무시합니다.
 
